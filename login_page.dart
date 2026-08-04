@@ -107,8 +107,8 @@ width: double.infinity,
 height: double.infinity,
 decoration: const BoxDecoration(
 image: DecorationImage(
-image: AssetImage("assets/bg.jpg"),
-fit: BoxFit.cover,
+image: AssetImage("assets/bg2.jpg"),
+fit: BoxFit.fill,
 ),
 ),
 child: Center(
@@ -214,14 +214,14 @@ rememberMe = value ?? false;
 ),
 const Text(
 "Remember me",
-style: TextStyle(color: Colors.black),
+style: TextStyle(color: Colors.white),
 ),
 const Spacer(),
 TextButton(
 onPressed: () {},
 child: const Text(
 "Forgot Password?",
-style: TextStyle(color: Colors.black),
+style: TextStyle(color: Colors.white),
 ),
 ),
 ],
@@ -260,7 +260,7 @@ const SizedBox(height: 20),
     children: [
       const Text(
         "Don't have an account? ",
-        style: TextStyle(color: Colors.black87),
+        style: TextStyle(color: Colors.white),
       ),
       GestureDetector(
         onTap: () {
@@ -272,7 +272,7 @@ const SizedBox(height: 20),
         child: const Text(
           "Register",
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -290,7 +290,7 @@ const SizedBox(height: 20),
 ),
 ),
 );
-} // <--- This cleanly closes your build widget tree
+}
 
   // Reusable unified style builder schema configuration parameters
   InputDecoration _buildInputDecoration({
