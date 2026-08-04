@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -33,6 +35,20 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Explore Maharashtra"),
         leading: const Icon(Icons.person),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => const LoginPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
 
       body: Padding(
