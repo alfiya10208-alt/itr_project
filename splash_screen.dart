@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:internship/login_page.dart';
 import 'dart:async';
-import 'home_page.dart'; 
+import 'home_page.dart';
 
 class SplashScreen extends StatefulWidget {
+  
   const SplashScreen({super.key});
 
   @override
@@ -27,12 +28,13 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
+
         fit: StackFit.expand,
         children: [
           // Background Image
           Image.asset(
-            "assets/splash_bg.jpg",
-            fit: BoxFit.cover,
+            "assets/splash3_bg.jpg",
+            fit: BoxFit.fill,
           ),
 
           // Dark Overlay
@@ -49,14 +51,14 @@ class _SplashScreenState extends State<SplashScreen> {
               children: const [
                 Icon(Icons.travel_explore, color: Colors.white, size: 80),
                 SizedBox(height: 20),
-                Text(
-                  "MahaExplore",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                // Text(
+                //   "MahaExplore",
+                //   style: TextStyle(
+                //     color: Colors.white,
+                //     fontSize: 32,
+                //     fontWeight: FontWeight.bold,
+                //   ),
+                // ),
               ],
             ),
           )
