@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart';
+import 'login_page.dart';
+import 'category_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,59 +16,53 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final search = TextEditingController();
 
-  String selectedCategory = "All";
-  bool saved = false;
+  final categories = [
+    ["Historical", Icons.account_balance, "assets/historical.jpg"],
+    ["Spiritual", Icons.temple_hindu, "assets/spiritual.jpg"],
+    ["Mountains", Icons.landscape, "assets/mountains.jpg"],
+    ["Beaches", Icons.beach_access, "assets/beaches.jpg"],
+  ];
 
-  // fav function
   Future<void> toggleFavorite(String placeId) async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please login first"),
-        ),
+        const SnackBar(content: Text("Please login first")),
       );
       return;
     }
 
-    final favoriteRef = FirebaseFirestore.instance
+    final ref = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('favorites')
         .doc(placeId);
 
-    final doc = await favoriteRef.get();
+    final doc = await ref.get();
 
     if (doc.exists) {
-      await favoriteRef.delete();
+      await ref.delete();
 
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Removed from favorites"),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Removed from favorites")),
+        );
+      }
     } else {
-      await favoriteRef.set({
+      await ref.set({
         'placeId': placeId,
         'savedAt': FieldValue.serverTimestamp(),
       });
 
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Added to favorites ❤️"),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Added to favorites ❤️")),
+        );
+      }
     }
-
-    setState(() {});
   }
 
-  // Check whether a place is already favorite
   Stream<bool> isFavorite(String placeId) {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -84,14 +79,12 @@ class _HomePageState extends State<HomePage> {
         .map((doc) => doc.exists);
   }
 
-  // Get places from Firebase
   Stream<QuerySnapshot> getPlaces() {
     return FirebaseFirestore.instance
         .collection('places')
         .snapshots();
   }
 
-    // MAP OPENING FUNCTION
   Future<void> openLocation(
       double latitude,
       double longitude,
@@ -115,436 +108,659 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Categories
-  final categories = [
-    ["Historical", Icons.account_balance],
-    ["Spiritual", Icons.temple_hindu],
-    ["Mountains", Icons.landscape],
-    ["Beaches", Icons.beach_access],
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: _drawer(context),
 
       body: SafeArea(
-        child: Column(
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
 
-            // TOP BAR
-            Padding(
-              padding: const EdgeInsets.all(15),
-              child: Row(
-                children: [
+              // TOP NAVIGATION
+              _topBar(),
 
-                  // PROFILE
-                  Builder(
-                    builder: (context) {
-                      return GestureDetector(
-                        onTap: () {
-                          Scaffold.of(context).openDrawer();
-                        },
-                        child: const CircleAvatar(
-                          radius: 24,
-                          child: Icon(Icons.person),
-                        ),
-                      );
-                    },
-                  ),
+              // HERO
+              _hero(),
 
-                  const SizedBox(width: 12),
-
-                  // SEARCH
-                  Expanded(
-                    child: TextField(
-                      controller: search,
-                      onChanged: (_) {
-                        setState(() {});
-                      },
-                      decoration: InputDecoration(
-                        hintText: "Search places...",
-                        prefixIcon: const Icon(Icons.search),
-
-                        suffixIcon: search.text.isNotEmpty
-                            ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            search.clear();
-                            setState(() {});
-                          },
-                        )
-                            : null,
-
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Divider(height: 1),
-
-            // PAGE CONTENT
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+              // MAIN CONTENT
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25,
+                  vertical: 30,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    // HERO
-                    Container(
-                      height: 210,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        image: const DecorationImage(
-                          image: AssetImage(
-                            "assets/splash3_bg.jpg",
-                          ),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          "Explore Maharashtra",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 10,
-                                color: Colors.black,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    // CATEGORY TITLE
-                    const Text(
-                      "Explore by category",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // CATEGORIES
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: categories.map((category) {
-                        return _category(
-                          category[0] as String,
-                          category[1] as IconData,
-                        );
-                      }).toList(),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // POPULAR
-                    const Text(
-                      "Popular in Maharashtra",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // FIRESTORE PLACES
-                    StreamBuilder<QuerySnapshot>(
-                      stream: getPlaces(),
-
-                      builder: (context, snapshot) {
-
-                        // ERROR
-                        if (snapshot.hasError) {
-                          return Text(
-                            "Firebase Error:\n${snapshot.error}",
-                            style: const TextStyle(
-                              color: Colors.red,
-                            ),
-                          );
-                        }
-
-                        // LOADING
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-
-                        // EMPTY
-                        if (!snapshot.hasData ||
-                            snapshot.data!.docs.isEmpty) {
-                          return const Text(
-                            "No places found",
-                          );
-                        }
-
-                        // PLACES
-                        final places = snapshot.data!.docs.where((place) {
-                          final name =
-                          place['name'].toString().toLowerCase();
-
-                          return name.contains(
-                            search.text.toLowerCase(),
-                          );
-                        }).toList();
-
-                        if (places.isEmpty) {
-                          return const Text(
-                            "No matching places found",
-                          );
-                        }
-
-                        return Column(
-                          children: places.map((place) {
-                            return _place(
-                              place.id,
-                              place['name'].toString(),
-                              place['location'].toString(),
-                              (place['latitude'] as num).toDouble(),
-                              (place['longitude'] as num).toDouble(),
-                            );
-                          }).toList(),
-                        );
-                      },
+                    _sectionTitle(
+                      "Explore Maharashtra",
+                      "Discover amazing places across the state",
                     ),
 
                     const SizedBox(height: 20),
 
-                    // START JOURNEY
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "🌄 Your journey begins!",
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.explore),
-                        label: const Text(
-                          "Start Your Journey",
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                      ),
+                    _categories(),
+
+                    const SizedBox(height: 45),
+
+                    _sectionTitle(
+                      "Popular Destinations",
+                      "Places you should not miss",
                     ),
+
+                    const SizedBox(height: 20),
+
+                    _places(),
+
+                    const SizedBox(height: 35),
+
+                    _startJourney(),
+
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // CATEGORY BUTTON
-  Widget _category(String title, IconData icon) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedCategory = title;
-        });
+  // TOP BAR
+  Widget _topBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 25,
+        vertical: 15,
+      ),
+      child: Row(
+        children: [
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("$title places selected"),
+          Builder(
+            builder: (context) {
+              return IconButton(
+                icon: const Icon(Icons.menu, size: 30),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              );
+            },
+          ),
+
+          const SizedBox(width: 10),
+
+          const Text(
+            "Explore Maharashtra",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const Spacer(),
+
+          // SEARCH
+          SizedBox(
+            width: 320,
+            child: TextField(
+              controller: search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: "Search places or cities...",
+                prefixIcon: const Icon(Icons.search),
+
+                suffixIcon: search.text.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    search.clear();
+                    setState(() {});
+                  },
+                )
+                    : null,
+
+                filled: true,
+                fillColor: Colors.grey.shade100,
+
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // HERO
+  Widget _hero() {
+    return SizedBox(
+      width: double.infinity,
+      height: 430,
+      child: Container(
+        decoration: BoxDecoration(
+          image: const DecorationImage(
+            image: AssetImage("assets/splash3_bg.jpg"),
+            fit: BoxFit.fill,
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(50),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomLeft,
+              end: Alignment.topRight,
+              colors: [
+                Colors.black.withOpacity(.75),
+                Colors.transparent,
+              ],
+            ),
+          ),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Discover Maharashtra",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 42,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              SizedBox(height: 10),
+
+              Text(
+                "Explore forts, beaches, mountains,\ntemples and unforgettable experiences.",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              // You can keep your Start Exploring button here
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // SECTION TITLE
+  Widget _sectionTitle(
+      String title,
+      String subtitle,
+      ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 5),
+
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 15,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // CATEGORIES
+  Widget _categories() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+
+        final width = constraints.maxWidth;
+
+        int count = 4;
+
+        if (width < 900) {
+          count = 2;
+        }
+
+        if (width < 500) {
+          count = 1;
+        }
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+
+          itemCount: categories.length,
+
+          gridDelegate:
+          SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: count,
+            crossAxisSpacing: 18,
+            mainAxisSpacing: 18,
+            childAspectRatio: 2.3,
+          ),
+
+          itemBuilder: (context, index) {
+
+            final category = categories[index];
+
+            return _categoryCard(
+              category[0] as String,
+              category[1] as IconData,
+              category[2] as String,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // CATEGORY CARD
+  Widget _categoryCard(
+      String title,
+      IconData icon,
+      String image,
+      ) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CategoryPage(
+              category: title,
+            ),
           ),
         );
       },
 
       child: Container(
-        width: 150,
-        height: 90,
-
         decoration: BoxDecoration(
-          border: Border.all(
-            color: selectedCategory == title
-                ? Colors.black
-                : Colors.grey.shade400,
-          ),
-          borderRadius: BorderRadius.circular(18),
-        ),
+          borderRadius: BorderRadius.circular(20),
 
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 28),
-
-            const SizedBox(height: 7),
-
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(.08),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
           ],
+
+          image: DecorationImage(
+            image: AssetImage(image),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Colors.black.withOpacity(.45),
+              BlendMode.darken,
+            ),
+          ),
+        ),
+
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+
+          child: Row(
+            children: [
+
+              Container(
+                padding: const EdgeInsets.all(12),
+
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(.2),
+                  shape: BoxShape.circle,
+                ),
+
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+
+              const SizedBox(width: 15),
+
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // FIRESTORE PLACES
+  Widget _places() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: getPlaces(),
+
+      builder: (context, snapshot) {
+
+        if (snapshot.hasError) {
+          return Text(
+            "Firebase Error:\n${snapshot.error}",
+            style: const TextStyle(
+              color: Colors.red,
+            ),
+          );
+        }
+
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(30),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData ||
+            snapshot.data!.docs.isEmpty) {
+          return const Text(
+            "No places found",
+          );
+        }
+
+        final searchText =
+        search.text.toLowerCase();
+
+        final places =
+        snapshot.data!.docs.where((place) {
+
+          final data =
+          place.data() as Map<String, dynamic>;
+
+          final name =
+              data['name']?.toString().toLowerCase() ?? "";
+
+          final city =
+              data['city']?.toString().toLowerCase() ?? "";
+
+          return name.contains(searchText) ||
+              city.contains(searchText);
+
+        }).toList();
+
+        if (places.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Text(
+                "No matching places found",
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+
+            int count = 3;
+
+            if (constraints.maxWidth < 1000) {
+              count = 2;
+            }
+
+            if (constraints.maxWidth < 600) {
+              count = 1;
+            }
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics:
+              const NeverScrollableScrollPhysics(),
+
+              itemCount: places.length,
+
+              gridDelegate:
+              SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: count,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 1.45,
+              ),
+
+              itemBuilder: (context, index) {
+
+                final place = places[index];
+
+                final data =
+                place.data()
+                as Map<String, dynamic>;
+
+                final latitude =
+                (data['latitude'] as num?)
+                    ?.toDouble();
+
+                final longitude =
+                (data['longitude'] as num?)
+                    ?.toDouble();
+
+                return _placeCard(
+                  place.id,
+                  data['name']?.toString() ??
+                      "Unknown Place",
+                  data['city']?.toString() ??
+                      "Maharashtra",
+                  data['location']?.toString() ??
+                      "Maharashtra",
+                  latitude,
+                  longitude,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   // PLACE CARD
-  Widget _place(
+  Widget _placeCard(
       String placeId,
       String title,
+      String city,
       String location,
-      double latitude,
-      double longitude,
-      ){
-    return GestureDetector(
-      // When user clicks the place
-      onTap: () {
-        openLocation(latitude, longitude);
-      },
+      double? latitude,
+      double? longitude,
+      ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
 
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(15),
+        borderRadius: BorderRadius.circular(20),
 
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Colors.grey.shade300,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.08),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
-        ),
+        ],
+      ),
 
-        child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+
           children: [
 
-            // Location icon
-            Container(
-              width: 75,
-              height: 75,
-
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
-              ),
-
-              child: const Icon(
-                Icons.location_on,
-                size: 38,
-              ),
-            ),
-
-            const SizedBox(width: 15),
-
-            // Place name and location
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  Text(
-                    location,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  const Text(
-                    "Tap to view location",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Map icon
-            const Icon(
-              Icons.map,
-              color: Colors.blue,
-            ),
-
-            // Favorite and Saved buttons
-            Column(
+            Row(
               children: [
+
+                Container(
+                  padding: const EdgeInsets.all(12),
+
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius:
+                    BorderRadius.circular(15),
+                  ),
+
+                  child: const Icon(
+                    Icons.location_city,
+                    size: 30,
+                  ),
+                ),
+
+                const Spacer(),
 
                 StreamBuilder<bool>(
                   stream: isFavorite(placeId),
+
                   builder: (context, snapshot) {
-                    final favorite = snapshot.data ?? false;
+
+                    final favorite =
+                        snapshot.data ?? false;
 
                     return IconButton(
                       icon: Icon(
                         favorite
                             ? Icons.favorite
                             : Icons.favorite_border,
+
                         color: favorite
                             ? Colors.red
-                            : Colors.black,
+                            : Colors.grey,
                       ),
+
                       onPressed: () {
                         toggleFavorite(placeId);
                       },
                     );
                   },
                 ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 5),
+
+            Row(
+              children: [
+
+                const Icon(
+                  Icons.location_on,
+                  size: 15,
+                  color: Colors.grey,
+                ),
+
+                const SizedBox(width: 4),
+
+                Expanded(
+                  child: Text(
+                    city,
+                    overflow: TextOverflow.ellipsis,
+
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const Spacer(),
+
+            Row(
+              children: [
+
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+
+                      if (latitude != null &&
+                          longitude != null) {
+
+                        openLocation(
+                          latitude,
+                          longitude,
+                        );
+
+                      } else {
+
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Location is not available",
+                            ),
+                          ),
+                        );
+                      }
+                    },
+
+                    icon: const Icon(
+                      Icons.map_outlined,
+                      size: 18,
+                    ),
+
+                    label: const Text("Map"),
+
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                        BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
 
                 IconButton(
-                  icon: Icon(
-                    saved
-                        ? Icons.bookmark
-                        : Icons.bookmark_border,
+                  icon: const Icon(
+                    Icons.bookmark_border,
                   ),
 
                   onPressed: () {
-                    setState(() {
-                      saved = !saved;
-                    });
+
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(
+                      const SnackBar(
+                        content:
+                        Text("Place saved 🔖"),
+                      ),
+                    );
                   },
                 ),
               ],
@@ -555,11 +771,94 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // START JOURNEY
+  Widget _startJourney() {
+    return Container(
+      width: double.infinity,
+
+      padding: const EdgeInsets.all(30),
+
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25),
+        color: Colors.black,
+      ),
+
+      child: Row(
+        children: [
+
+          const Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+              children: [
+
+                Text(
+                  "Ready for your next adventure?",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height: 8),
+
+                Text(
+                  "Explore the beauty of Maharashtra.",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          ElevatedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(
+                const SnackBar(
+                  content:
+                  Text("🌄 Your journey begins!"),
+                ),
+              );
+            },
+
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+
+              padding: const EdgeInsets.symmetric(
+                horizontal: 25,
+                vertical: 15,
+              ),
+
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                BorderRadius.circular(30),
+              ),
+            ),
+
+            child: const Text(
+              "Explore Now",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // DRAWER
   Widget _drawer(BuildContext context) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
+
         children: [
 
           const UserAccountsDrawerHeader(
@@ -578,8 +877,10 @@ class _HomePageState extends State<HomePage> {
               "Explore Maharashtra",
             ),
 
-            currentAccountPicture: CircleAvatar(
+            currentAccountPicture:
+            CircleAvatar(
               backgroundColor: Colors.white,
+
               child: Icon(
                 Icons.person,
                 color: Colors.black,
@@ -614,20 +915,22 @@ class _HomePageState extends State<HomePage> {
 
           const Divider(),
 
-          // LOGOUT
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text("Logout"),
 
             onTap: () async {
+
               await FirebaseAuth.instance.signOut();
 
               if (!context.mounted) return;
 
               Navigator.pushReplacement(
                 context,
+
                 MaterialPageRoute(
-                  builder: (_) => const LoginPage(),
+                  builder: (_) =>
+                  const LoginPage(),
                 ),
               );
             },
@@ -637,7 +940,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // DRAWER ITEM
   Widget _drawerItem(
       BuildContext context,
       IconData icon,
@@ -648,11 +950,14 @@ class _HomePageState extends State<HomePage> {
       title: Text(title),
 
       onTap: () {
+
         Navigator.pop(context);
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
           SnackBar(
-            content: Text("$title selected"),
+            content:
+            Text("$title selected"),
           ),
         );
       },
