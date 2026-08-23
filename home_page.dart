@@ -27,7 +27,10 @@ class _HomePageState extends State<HomePage> {
     ["Beaches", Icons.beach_access, "assets/beaches.jpg"],
   ];
 
-  Future<void> toggleFavorite(String placeId) async {
+  Future<void> toggleFavorite(
+      String placeId,
+      Map<String, dynamic> place,
+      ) async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -50,18 +53,30 @@ class _HomePageState extends State<HomePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Removed from favorites")),
+          const SnackBar(
+            content: Text("Removed from favorites"),
+          ),
         );
       }
     } else {
       await ref.set({
         'placeId': placeId,
-        'savedAt': FieldValue.serverTimestamp(),
+        'name': place['name'] ?? '',
+        'location': place['location'] ?? '',
+        'city': place['city'] ?? '',
+        'category': place['category'] ?? '',
+        'imageUrl': place['imageUrl'] ?? '',
+        'description': place['description'] ?? '',
+        'latitude': place['latitude'],
+        'longitude': place['longitude'],
+        'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Added to favorites ❤️")),
+          const SnackBar(
+            content: Text("Added to favorites ❤️"),
+          ),
         );
       }
     }
@@ -120,24 +135,52 @@ class _HomePageState extends State<HomePage> {
     final doc = await ref.get();
 
     if (doc.exists) {
+      // REMOVE FROM SAVED
       await ref.delete();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Removed from saved"),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Removed from saved"),
+          ),
+        );
+      }
     } else {
+      // GET PLACE DETAILS FROM PLACES COLLECTION
+      final placeDoc = await FirebaseFirestore.instance
+          .collection('places')
+          .doc(placeId)
+          .get();
+
+      if (!placeDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Place not found"),
+          ),
+        );
+        return;
+      }
+
+      final data = placeDoc.data() as Map<String, dynamic>;
+
+      // SAVE PLACE DETAILS
       await ref.set({
         'placeId': placeId,
+        'name': data['name'] ?? 'Unknown Place',
+        'city': data['city'] ?? 'Maharashtra',
+        'location': data['location'] ?? 'Maharashtra',
+        'imageUrl': data['imageUrl'] ?? '',
+        'description': data['description'] ?? '',
         'savedAt': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Saved successfully 🔖"),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Saved successfully 🔖"),
+          ),
+        );
+      }
     }
   }
 
@@ -168,6 +211,26 @@ class _HomePageState extends State<HomePage> {
 
       await launchUrl(geo);
     }
+  }
+
+  Future<void> addToHistory({
+    required String placeId,
+    required String placeName,
+    required String city,
+    required String category,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    await FirebaseFirestore.instance.collection('history').add({
+      'userId': user.uid,
+      'placeId': placeId,
+      'placeName': placeName,
+      'city': city,
+      'category': category,
+      'visitedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   @override
@@ -714,7 +777,13 @@ class _HomePageState extends State<HomePage> {
                       ),
 
                       onPressed: () {
-                        toggleFavorite(placeId);
+                        toggleFavorite(placeId, {
+                          'name': title,
+                          'location': location,
+                          'city': city,
+                          'latitude': latitude,
+                          'longitude': longitude,
+                        });
                       },
                     );
                   },
@@ -768,24 +837,29 @@ class _HomePageState extends State<HomePage> {
 
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
 
-                      if (latitude != null &&
-                          longitude != null) {
+                      if (latitude != null && longitude != null) {
 
-                        openLocation(
+                        // Save history first
+                        await addToHistory(
+                          placeId: placeId,
+                          placeName: title,
+                          city: city,
+                          category: "Tourist Place",
+                        );
+
+                        // Then open map
+                        await openLocation(
                           latitude,
                           longitude,
                         );
 
                       } else {
 
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text(
-                              "Location is not available",
-                            ),
+                            content: Text("Location is not available"),
                           ),
                         );
                       }
@@ -1024,41 +1098,34 @@ class _HomePageState extends State<HomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ProfilePage(),
+              builder: (_) => const ProfilePage(),
             ),
-          );
-        } else if (title == "History") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const HistoryPage(),
-            ),
-          );
-        } else if (title=="Favorites") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const FavoritePage(),
-            ),
-          );
-        } else if (title=="Saved") {
-          ListTile(
-            leading: const Icon(Icons.bookmark),
-            title: const Text('Saved'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SavedPage(),
-                ),
-              );
-            },
           );
         }
-        else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("$title selected"),
+
+        else if (title == "History") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const HistoryPage(),
+            ),
+          );
+        }
+
+        else if (title == "Favorites") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const FavoritePage(),
+            ),
+          );
+        }
+
+        else if (title == "Saved") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const SavedPage(),
             ),
           );
         }
