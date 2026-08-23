@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'profile_page.dart';
+import 'history_page.dart';
+import 'favorite_page.dart';
+import 'saved_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -77,6 +81,64 @@ class _HomePageState extends State<HomePage> {
         .doc(placeId)
         .snapshots()
         .map((doc) => doc.exists);
+  }
+
+  Stream<bool> isSaved(String placeId) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Stream.value(false);
+    }
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved')
+        .doc(placeId)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
+
+  Future<void> toggleSaved(String placeId) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please login first"),
+        ),
+      );
+      return;
+    }
+
+    final ref = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved')
+        .doc(placeId);
+
+    final doc = await ref.get();
+
+    if (doc.exists) {
+      await ref.delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Removed from saved"),
+        ),
+      );
+    } else {
+      await ref.set({
+        'placeId': placeId,
+        'savedAt': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Saved successfully 🔖"),
+        ),
+      );
+    }
   }
 
   Stream<QuerySnapshot> getPlaces() {
@@ -747,19 +809,25 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(width: 10),
 
-                IconButton(
-                  icon: const Icon(
-                    Icons.bookmark_border,
-                  ),
+                StreamBuilder<bool>(
+                  stream: isSaved(placeId),
 
-                  onPressed: () {
+                  builder: (context, snapshot) {
+                    final saved = snapshot.data ?? false;
 
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                      const SnackBar(
-                        content:
-                        Text("Place saved 🔖"),
+                    return IconButton(
+                      icon: Icon(
+                        saved
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                        color: saved
+                            ? Colors.blue
+                            : Colors.grey,
                       ),
+
+                      onPressed: () {
+                        toggleSaved(placeId);
+                      },
                     );
                   },
                 ),
@@ -950,16 +1018,50 @@ class _HomePageState extends State<HomePage> {
       title: Text(title),
 
       onTap: () {
-
         Navigator.pop(context);
 
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-          SnackBar(
-            content:
-            Text("$title selected"),
-          ),
-        );
+        if (title == "Profile") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProfilePage(),
+            ),
+          );
+        } else if (title == "History") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const HistoryPage(),
+            ),
+          );
+        } else if (title=="Favorites") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const FavoritePage(),
+            ),
+          );
+        } else if (title=="Saved") {
+          ListTile(
+            leading: const Icon(Icons.bookmark),
+            title: const Text('Saved'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SavedPage(),
+                ),
+              );
+            },
+          );
+        }
+        else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("$title selected"),
+            ),
+          );
+        }
       },
     );
   }
