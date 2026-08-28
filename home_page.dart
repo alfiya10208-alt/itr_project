@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart';
 import 'login_page.dart';
 import 'category_page.dart';
+import 'chatbot_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,15 +28,14 @@ class _HomePageState extends State<HomePage> {
     ["Beaches", Icons.beach_access, "assets/beaches.jpg"],
   ];
 
-  Future<void> toggleFavorite(
-      String placeId,
-      Map<String, dynamic> place,
-      ) async {
+  Future<void> toggleFavorite(String placeId) async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please login first")),
+        const SnackBar(
+          content: Text("Please login first"),
+        ),
       );
       return;
     }
@@ -48,6 +48,7 @@ class _HomePageState extends State<HomePage> {
 
     final doc = await ref.get();
 
+    // REMOVE FAVORITE
     if (doc.exists) {
       await ref.delete();
 
@@ -58,27 +59,49 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       }
-    } else {
-      await ref.set({
-        'placeId': placeId,
-        'name': place['name'] ?? '',
-        'location': place['location'] ?? '',
-        'city': place['city'] ?? '',
-        'category': place['category'] ?? '',
-        'imageUrl': place['imageUrl'] ?? '',
-        'description': place['description'] ?? '',
-        'latitude': place['latitude'],
-        'longitude': place['longitude'],
-        'createdAt': FieldValue.serverTimestamp(),
-      });
 
+      return;
+    }
+
+    // GET PLACE FROM FIRESTORE
+    final placeDoc = await FirebaseFirestore.instance
+        .collection('places')
+        .doc(placeId)
+        .get();
+
+    if (!placeDoc.exists) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Added to favorites ❤️"),
+            content: Text("Place not found"),
           ),
         );
       }
+      return;
+    }
+
+    final data = placeDoc.data() as Map<String, dynamic>;
+
+    // ADD FAVORITE
+    await ref.set({
+      'placeId': placeId,
+      'name': data['name'] ?? 'Unknown Place',
+      'city': data['city'] ?? 'Maharashtra',
+      'location': data['location'] ?? 'Maharashtra',
+      'category': data['category'] ?? '',
+      'imageUrl': data['imageUrl'] ?? '',
+      'description': data['description'] ?? '',
+      'latitude': data['latitude'],
+      'longitude': data['longitude'],
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Added to favorites ❤️"),
+        ),
+      );
     }
   }
 
@@ -190,6 +213,7 @@ class _HomePageState extends State<HomePage> {
         .snapshots();
   }
 
+  //open location
   Future<void> openLocation(
       double latitude,
       double longitude,
@@ -213,6 +237,34 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  //open lodge
+  Future<void> openLodge(String placeName) async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/search/hotels+near+$placeName',
+    );
+
+    await launchUrl(
+      url,
+      webOnlyWindowName: '_blank',
+    );
+  }
+
+  // open food
+  Future<void> openFood(
+      double latitude,
+      double longitude,
+      ) async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/search/food+near+me/@$latitude,$longitude,14z',
+    );
+
+    await launchUrl(
+      url,
+      webOnlyWindowName: '_blank',
+    );
+  }
+
+  // Add to history
   Future<void> addToHistory({
     required String placeId,
     required String placeName,
@@ -237,6 +289,24 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: _drawer(context),
+
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+
+        icon: const Icon(Icons.chat),
+
+        label: const Text("Travel Assistant"),
+
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ChatbotPage(),
+            ),
+          );
+        },
+      ),
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -366,11 +436,11 @@ class _HomePageState extends State<HomePage> {
   Widget _hero() {
     return SizedBox(
       width: double.infinity,
-      height: 430,
+      height: 530,
       child: Container(
         decoration: BoxDecoration(
           image: const DecorationImage(
-            image: AssetImage("assets/splash3_bg.jpg"),
+            image: AssetImage("assets/splash_bg.jpg"),
             fit: BoxFit.fill,
           ),
         ),
@@ -390,11 +460,12 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
               Text(
-                "Discover Maharashtra",
+                "Discover महाराष्ट्र माझा",
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 42,
+                  color: Colors.deepOrange,
+                  fontSize: 48,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -402,16 +473,29 @@ class _HomePageState extends State<HomePage> {
               SizedBox(height: 10),
 
               Text(
-                "Explore forts, beaches, mountains,\ntemples and unforgettable experiences.",
+                "Explore.",
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
+                  color: Colors.deepOrange,
+                  fontSize: 25,
                 ),
               ),
 
-              SizedBox(height: 20),
+              Text(
+                "Experience.",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 25,
+                ),
+              ),
 
-              // You can keep your Start Exploring button here
+              Text(
+                "Remember.",
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 25,
+                ),
+              ),
+
             ],
           ),
         ),
@@ -688,14 +772,13 @@ class _HomePageState extends State<HomePage> {
 
                 return _placeCard(
                   place.id,
-                  data['name']?.toString() ??
-                      "Unknown Place",
-                  data['city']?.toString() ??
-                      "Maharashtra",
-                  data['location']?.toString() ??
-                      "Maharashtra",
+                  data['name']?.toString() ?? "Unknown Place",
+                  data['city']?.toString() ?? "Maharashtra",
+                  data['location']?.toString() ?? "Maharashtra",
+                  data['category']?.toString() ?? "",
                   latitude,
                   longitude,
+                  data['imageUrl']?.toString() ?? "",
                 );
               },
             );
@@ -711,201 +794,394 @@ class _HomePageState extends State<HomePage> {
       String title,
       String city,
       String location,
+      String category,
       double? latitude,
       double? longitude,
-      ) {
+      String imageUrl,
+      ){
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-
         borderRadius: BorderRadius.circular(20),
-
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.08),
+            color: Colors.black.withOpacity(.12),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),
         ],
       ),
 
-      child: Padding(
-        padding: const EdgeInsets.all(18),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-
+        child: Stack(
           children: [
 
-            Row(
-              children: [
+            // --------------------------------
+            // BACKGROUND IMAGE
+            // --------------------------------
+            Positioned.fill(
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
 
-                Container(
-                  padding: const EdgeInsets.all(12),
-
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius:
-                    BorderRadius.circular(15),
-                  ),
-
-                  child: const Icon(
-                    Icons.location_city,
-                    size: 30,
-                  ),
+                errorBuilder:
+                    (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey.shade300,
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  );
+                },
+              )
+                  : Container(
+                color: Colors.grey.shade300,
+                child: const Icon(
+                  Icons.image,
+                  size: 50,
+                  color: Colors.grey,
                 ),
-
-                const Spacer(),
-
-                StreamBuilder<bool>(
-                  stream: isFavorite(placeId),
-
-                  builder: (context, snapshot) {
-
-                    final favorite =
-                        snapshot.data ?? false;
-
-                    return IconButton(
-                      icon: Icon(
-                        favorite
-                            ? Icons.favorite
-                            : Icons.favorite_border,
-
-                        color: favorite
-                            ? Colors.red
-                            : Colors.grey,
-                      ),
-
-                      onPressed: () {
-                        toggleFavorite(placeId, {
-                          'name': title,
-                          'location': location,
-                          'city': city,
-                          'latitude': latitude,
-                          'longitude': longitude,
-                        });
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-
-              style: const TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.bold,
               ),
             ),
 
-            const SizedBox(height: 5),
-
-            Row(
-              children: [
-
-                const Icon(
-                  Icons.location_on,
-                  size: 15,
-                  color: Colors.grey,
-                ),
-
-                const SizedBox(width: 4),
-
-                Expanded(
-                  child: Text(
-                    city,
-                    overflow: TextOverflow.ellipsis,
-
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                    ),
+            // --------------------------------
+            // DARK OVERLAY
+            // --------------------------------
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(.15),
+                      Colors.black.withOpacity(.25),
+                      Colors.black.withOpacity(.75),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
 
-            const Spacer(),
+            // --------------------------------
+            // CARD CONTENT
+            // --------------------------------
+            Padding(
+              padding: const EdgeInsets.all(18),
 
-            Row(
-              children: [
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
 
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
+                children: [
 
-                      if (latitude != null && longitude != null) {
+                  // --------------------------------
+                  // TOP ROW
+                  // --------------------------------
+                  Row(
+                    children: [
 
-                        // Save history first
-                        await addToHistory(
-                          placeId: placeId,
-                          placeName: title,
-                          city: city,
-                          category: "Tourist Place",
-                        );
+                      // PLACE ICON
+                      Container(
+                        padding:
+                        const EdgeInsets.all(10),
 
-                        // Then open map
-                        await openLocation(
-                          latitude,
-                          longitude,
-                        );
+                        decoration: BoxDecoration(
+                          color: Colors.white
+                              .withOpacity(.85),
+                          borderRadius:
+                          BorderRadius.circular(14),
+                        ),
 
-                      } else {
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Location is not available"),
-                          ),
-                        );
-                      }
-                    },
-
-                    icon: const Icon(
-                      Icons.map_outlined,
-                      size: 18,
-                    ),
-
-                    label: const Text("Map"),
-
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                        BorderRadius.circular(12),
+                        child: const Icon(
+                          Icons.location_city,
+                          size: 27,
+                          color: Colors.black87,
+                        ),
                       ),
+
+                      const Spacer(),
+
+                      // FAVORITE BUTTON
+                      StreamBuilder<bool>(
+                        stream: isFavorite(placeId),
+
+                        builder:
+                            (context, snapshot) {
+
+                          final favorite =
+                              snapshot.data ?? false;
+
+                          return Container(
+                            decoration:
+                            const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+
+                            child: IconButton(
+                              icon: Icon(
+                                favorite
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+
+                                color: favorite
+                                    ? Colors.red
+                                    : Colors.grey.shade700,
+                              ),
+
+                              onPressed: () {
+                                toggleFavorite(placeId);
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const Spacer(),
+
+                  // --------------------------------
+                  // PLACE NAME
+                  // --------------------------------
+                  Text(
+                    title,
+
+                    maxLines: 1,
+
+                    overflow:
+                    TextOverflow.ellipsis,
+
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+
+                      shadows: [
+                        Shadow(
+                          color: Colors.black54,
+                          blurRadius: 5,
+                        ),
+                      ],
                     ),
                   ),
-                ),
 
-                const SizedBox(width: 10),
+                  const SizedBox(height: 6),
 
-                StreamBuilder<bool>(
-                  stream: isSaved(placeId),
+                  // --------------------------------
+                  // CITY
+                  // --------------------------------
+                  Row(
+                    children: [
 
-                  builder: (context, snapshot) {
-                    final saved = snapshot.data ?? false;
-
-                    return IconButton(
-                      icon: Icon(
-                        saved
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                        color: saved
-                            ? Colors.blue
-                            : Colors.grey,
+                      const Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: Colors.white,
                       ),
 
+                      const SizedBox(width: 4),
+
+                      Expanded(
+                        child: Text(
+                          city,
+
+                          overflow:
+                          TextOverflow.ellipsis,
+
+                          style:
+                          const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            shadows: [
+                              Shadow(
+                                color:
+                                Colors.black54,
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // --------------------------------
+                  // MAP + SAVE
+                  // --------------------------------
+                  Row(
+                    children: [
+
+                      // MAP BUTTON
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+
+                            // SAVE TO HISTORY
+                            await addToHistory(
+                              placeId: placeId,
+                              placeName: title,
+                              city: city,
+                              category: category,
+                            );
+
+                            // OPEN MAP
+                            if (latitude != null &&
+                                longitude != null) {
+
+                              await openLocation(
+                                latitude,
+                                longitude,
+                              );
+
+                            } else {
+
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Location is not available",
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+
+                          icon: const Icon(
+                            Icons.map_outlined,
+                            size: 18,
+                          ),
+
+                          label:
+                          const Text("Map"),
+
+                          style:
+                          OutlinedButton.styleFrom(
+                            foregroundColor:
+                            Colors.white,
+
+                            side:
+                            const BorderSide(
+                              color: Colors.white,
+                            ),
+
+                            backgroundColor:
+                            Colors.black
+                                .withOpacity(.25),
+
+                            shape:
+                            RoundedRectangleBorder(
+                              borderRadius:
+                              BorderRadius.circular(
+                                  12),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      // LODGE BUTTON
+                      Expanded(
+                      child: OutlinedButton.icon(
                       onPressed: () {
-                        toggleSaved(placeId);
+                      openLodge(title);
                       },
-                    );
-                  },
-                ),
-              ],
+
+                      icon: const Icon(
+                      Icons.hotel_outlined,
+                      size: 18,
+                      ),
+
+                      label: const Text("Lodge"),
+
+                      style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(
+                      color: Colors.white,
+                      ),
+                      backgroundColor: Colors.black.withOpacity(.25),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      // Food button
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            if (latitude != null && longitude != null) {
+                              openFood(latitude, longitude);
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.restaurant_outlined,
+                            size: 18,
+                          ),
+                          label: const Text("Food"),
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      // SAVE BUTTON
+                      StreamBuilder<bool>(
+                        stream: isSaved(placeId),
+
+                        builder:
+                            (context, snapshot) {
+
+                          final saved =
+                              snapshot.data ?? false;
+
+                          return Container(
+                            decoration:
+                            BoxDecoration(
+                              color: Colors.white
+                                  .withOpacity(.9),
+                              borderRadius:
+                              BorderRadius.circular(
+                                  12),
+                            ),
+
+                            child: IconButton(
+                              icon: Icon(
+                                saved
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
+
+                                color: saved
+                                    ? Colors.blue
+                                    : Colors.grey.shade700,
+                              ),
+
+                              tooltip: saved
+                                  ? "Remove from saved"
+                                  : "Save place",
+
+                              onPressed: () {
+                                toggleSaved(placeId);
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
