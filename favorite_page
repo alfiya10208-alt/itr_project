@@ -196,7 +196,6 @@ class FavoriteCard extends StatelessWidget {
     required this.userId,
   });
 
-  
   // REMOVE FAVORITE FROM FIRESTORE
   Future<void> removeFavorite(BuildContext context) async {
     try {
@@ -242,7 +241,6 @@ class FavoriteCard extends StatelessWidget {
         children: [
 
           // IMAGE
-
           Stack(
             children: [
               SizedBox(
