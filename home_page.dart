@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'profile_page.dart';
 import 'history_page.dart';
 import 'favorite_page.dart';
 import 'saved_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter/foundation.dart';
 import 'login_page.dart';
 import 'category_page.dart';
 import 'chatbot_page.dart';
+import 'place_details_page.dart';
+import 'trip_planner_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,7 +19,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final search = TextEditingController();
+  final TextEditingController search = TextEditingController();
 
   final categories = [
     ["Historical", Icons.account_balance, "assets/historical.jpg"],
@@ -28,15 +28,21 @@ class _HomePageState extends State<HomePage> {
     ["Beaches", Icons.beach_access, "assets/beaches.jpg"],
   ];
 
+  // MESSAGE
+  void showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  // FAVORITE
   Future<void> toggleFavorite(String placeId) async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please login first"),
-        ),
-      );
+      showMessage("Please login first");
       return;
     }
 
@@ -48,41 +54,24 @@ class _HomePageState extends State<HomePage> {
 
     final doc = await ref.get();
 
-    // REMOVE FAVORITE
     if (doc.exists) {
       await ref.delete();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Removed from favorites"),
-          ),
-        );
-      }
-
+      showMessage("Removed from favorites");
       return;
     }
 
-    // GET PLACE FROM FIRESTORE
     final placeDoc = await FirebaseFirestore.instance
         .collection('places')
         .doc(placeId)
         .get();
 
     if (!placeDoc.exists) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Place not found"),
-          ),
-        );
-      }
+      showMessage("Place not found");
       return;
     }
 
     final data = placeDoc.data() as Map<String, dynamic>;
 
-    // ADD FAVORITE
     await ref.set({
       'placeId': placeId,
       'name': data['name'] ?? 'Unknown Place',
@@ -96,13 +85,7 @@ class _HomePageState extends State<HomePage> {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Added to favorites ❤️"),
-        ),
-      );
-    }
+    showMessage("Added to favorites ❤️");
   }
 
   Stream<bool> isFavorite(String placeId) {
@@ -121,6 +104,7 @@ class _HomePageState extends State<HomePage> {
         .map((doc) => doc.exists);
   }
 
+  // SAVED
   Stream<bool> isSaved(String placeId) {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -141,11 +125,7 @@ class _HomePageState extends State<HomePage> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please login first"),
-        ),
-      );
+      showMessage("Please login first");
       return;
     }
 
@@ -158,133 +138,47 @@ class _HomePageState extends State<HomePage> {
     final doc = await ref.get();
 
     if (doc.exists) {
-      // REMOVE FROM SAVED
       await ref.delete();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Removed from saved"),
-          ),
-        );
-      }
-    } else {
-      // GET PLACE DETAILS FROM PLACES COLLECTION
-      final placeDoc = await FirebaseFirestore.instance
-          .collection('places')
-          .doc(placeId)
-          .get();
-
-      if (!placeDoc.exists) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Place not found"),
-          ),
-        );
-        return;
-      }
-
-      final data = placeDoc.data() as Map<String, dynamic>;
-
-      // SAVE PLACE DETAILS
-      await ref.set({
-        'placeId': placeId,
-        'name': data['name'] ?? 'Unknown Place',
-        'city': data['city'] ?? 'Maharashtra',
-        'location': data['location'] ?? 'Maharashtra',
-        'imageUrl': data['imageUrl'] ?? '',
-        'description': data['description'] ?? '',
-        'savedAt': FieldValue.serverTimestamp(),
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Saved successfully 🔖"),
-          ),
-        );
-      }
+      showMessage("Removed from saved");
+      return;
     }
+
+    final placeDoc = await FirebaseFirestore.instance
+        .collection('places')
+        .doc(placeId)
+        .get();
+
+    if (!placeDoc.exists) {
+      showMessage("Place not found");
+      return;
+    }
+
+    final data = placeDoc.data() as Map<String, dynamic>;
+
+    await ref.set({
+      'placeId': placeId,
+      'name': data['name'] ?? 'Unknown Place',
+      'city': data['city'] ?? 'Maharashtra',
+      'location': data['location'] ?? 'Maharashtra',
+      'category': data['category'] ?? '',
+      'imageUrl': data['imageUrl'] ?? '',
+      'description': data['description'] ?? '',
+      'latitude': data['latitude'],
+      'longitude': data['longitude'],
+      'savedAt': FieldValue.serverTimestamp(),
+    });
+
+    showMessage("Saved successfully 🔖");
   }
 
+  // FIRESTORE
   Stream<QuerySnapshot> getPlaces() {
     return FirebaseFirestore.instance
         .collection('places')
         .snapshots();
   }
 
-  //open location
-  Future<void> openLocation(
-      double latitude,
-      double longitude,
-      ) async {
-    if (kIsWeb) {
-      final url = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude',
-      );
-
-      await launchUrl(
-        url,
-        webOnlyWindowName: '_blank',
-      );
-    } else {
-      final geo = Uri(
-        scheme: 'geo',
-        path: '$latitude,$longitude',
-      );
-
-      await launchUrl(geo);
-    }
-  }
-
-  //open lodge
-  Future<void> openLodge(String placeName) async {
-    final url = Uri.parse(
-      'https://www.google.com/maps/search/hotels+near+$placeName',
-    );
-
-    await launchUrl(
-      url,
-      webOnlyWindowName: '_blank',
-    );
-  }
-
-  // open food
-  Future<void> openFood(
-      double latitude,
-      double longitude,
-      ) async {
-    final url = Uri.parse(
-      'https://www.google.com/maps/search/food+near+me/@$latitude,$longitude,14z',
-    );
-
-    await launchUrl(
-      url,
-      webOnlyWindowName: '_blank',
-    );
-  }
-
-  // Add to history
-  Future<void> addToHistory({
-    required String placeId,
-    required String placeName,
-    required String city,
-    required String category,
-  }) async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) return;
-
-    await FirebaseFirestore.instance.collection('history').add({
-      'userId': user.uid,
-      'placeId': placeId,
-      'placeName': placeName,
-      'city': city,
-      'category': category,
-      'visitedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
+  // BUILD
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,11 +187,8 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-
         icon: const Icon(Icons.chat),
-
         label: const Text("Travel Assistant"),
-
         onPressed: () {
           Navigator.push(
             context,
@@ -312,23 +203,19 @@ class _HomePageState extends State<HomePage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-
-              // TOP NAVIGATION
               _topBar(),
 
-              // HERO
               _hero(),
 
-              // MAIN CONTENT
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 25,
                   vertical: 30,
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
                   children: [
-
                     _sectionTitle(
                       "Explore Maharashtra",
                       "Discover amazing places across the state",
@@ -367,63 +254,107 @@ class _HomePageState extends State<HomePage> {
   // TOP BAR
   Widget _topBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 25,
-        vertical: 15,
+      padding: const EdgeInsets.fromLTRB(
+        25,
+        20,
+        25,
+        15,
       ),
-      child: Row(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
         children: [
-
-          Builder(
-            builder: (context) {
-              return IconButton(
-                icon: const Icon(Icons.menu, size: 30),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
+          Row(
+            children: [
+              Builder(
+                builder: (context) {
+                  return IconButton(
+                    icon: const Icon(
+                      Icons.menu,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Scaffold.of(context)
+                          .openDrawer();
+                    },
+                  );
                 },
-              );
-            },
-          ),
+              ),
 
-          const SizedBox(width: 10),
+              const SizedBox(width: 5),
 
-          const Text(
-            "Explore Maharashtra",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+              const Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Hello, Traveler! 👋",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    "Where do you want to explore today?",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
 
-          const Spacer(),
+              const Spacer(),
 
-          // SEARCH
-          SizedBox(
-            width: 320,
-            child: TextField(
-              controller: search,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: "Search places or cities...",
-                prefixIcon: const Icon(Icons.search),
-
-                suffixIcon: search.text.isNotEmpty
-                    ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    search.clear();
-                    setState(() {});
-                  },
-                )
-                    : null,
-
-                filled: true,
-                fillColor: Colors.grey.shade100,
-
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+              IconButton(
+                icon: const Icon(
+                  Icons.notifications_none,
+                  size: 27,
                 ),
+                onPressed: () {},
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          TextField(
+            controller: search,
+            onChanged: (_) {
+              setState(() {});
+            },
+            decoration: InputDecoration(
+              hintText:
+              "Search places, cities...",
+              prefixIcon:
+              const Icon(Icons.search),
+              suffixIcon:
+              search.text.isNotEmpty
+                  ? IconButton(
+                icon: const Icon(
+                  Icons.clear,
+                ),
+                onPressed: () {
+                  search.clear();
+                  setState(() {});
+                },
+              )
+                  : null,
+              filled: true,
+              fillColor:
+              Colors.grey.shade100,
+              contentPadding:
+              const EdgeInsets.symmetric(
+                vertical: 15,
+              ),
+              border: OutlineInputBorder(
+                borderRadius:
+                BorderRadius.circular(30),
+                borderSide:
+                BorderSide.none,
               ),
             ),
           ),
@@ -436,37 +367,45 @@ class _HomePageState extends State<HomePage> {
   Widget _hero() {
     return SizedBox(
       width: double.infinity,
-      height: 530,
+      height: 450,
       child: Container(
-        decoration: BoxDecoration(
-          image: const DecorationImage(
-            image: AssetImage("assets/splash_bg.jpg"),
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(
+              "assets/splash_bg.jpg",
+            ),
             fit: BoxFit.fill,
           ),
         ),
         child: Container(
-          padding: const EdgeInsets.all(50),
+          padding:
+          const EdgeInsets.all(50),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.bottomLeft,
-              end: Alignment.topRight,
+              begin:
+              Alignment.bottomLeft,
+              end:
+              Alignment.topRight,
               colors: [
-                Colors.black.withOpacity(.75),
+                Colors.black
+                    .withOpacity(.75),
                 Colors.transparent,
               ],
             ),
           ),
           child: const Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment:
+            MainAxisAlignment.end,
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
             children: [
-
               Text(
                 "Discover महाराष्ट्र माझा",
                 style: TextStyle(
                   color: Colors.deepOrange,
                   fontSize: 48,
-                  fontWeight: FontWeight.bold,
+                  fontWeight:
+                  FontWeight.bold,
                 ),
               ),
 
@@ -495,7 +434,6 @@ class _HomePageState extends State<HomePage> {
                   fontSize: 25,
                 ),
               ),
-
             ],
           ),
         ),
@@ -509,14 +447,15 @@ class _HomePageState extends State<HomePage> {
       String subtitle,
       ) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
       children: [
-
         Text(
           title,
           style: const TextStyle(
             fontSize: 28,
-            fontWeight: FontWeight.bold,
+            fontWeight:
+            FontWeight.bold,
           ),
         ),
 
@@ -526,7 +465,8 @@ class _HomePageState extends State<HomePage> {
           subtitle,
           style: TextStyle(
             fontSize: 15,
-            color: Colors.grey.shade600,
+            color:
+            Colors.grey.shade600,
           ),
         ),
       ],
@@ -537,36 +477,32 @@ class _HomePageState extends State<HomePage> {
   Widget _categories() {
     return LayoutBuilder(
       builder: (context, constraints) {
-
-        final width = constraints.maxWidth;
-
         int count = 4;
 
-        if (width < 900) {
+        if (constraints.maxWidth < 900) {
           count = 2;
         }
 
-        if (width < 500) {
-          count = 1;
+        if (constraints.maxWidth < 500) {
+          count = 2;
         }
 
         return GridView.builder(
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-
+          physics:
+          const NeverScrollableScrollPhysics(),
           itemCount: categories.length,
-
           gridDelegate:
           SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: count,
-            crossAxisSpacing: 18,
-            mainAxisSpacing: 18,
-            childAspectRatio: 2.3,
+            crossAxisSpacing: 15,
+            mainAxisSpacing: 15,
+            childAspectRatio: 1.4,
           ),
-
-          itemBuilder: (context, index) {
-
-            final category = categories[index];
+          itemBuilder:
+              (context, index) {
+            final category =
+            categories[index];
 
             return _categoryCard(
               category[0] as String,
@@ -586,86 +522,87 @@ class _HomePageState extends State<HomePage> {
       String image,
       ) {
     return InkWell(
-      borderRadius: BorderRadius.circular(20),
-
+      borderRadius:
+      BorderRadius.circular(18),
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => CategoryPage(
-              category: title,
-            ),
+            builder: (_) =>
+                CategoryPage(
+                  category: title,
+                ),
           ),
         );
       },
-
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(.08),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-
+          borderRadius:
+          BorderRadius.circular(18),
           image: DecorationImage(
             image: AssetImage(image),
             fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(.45),
+            colorFilter:
+            ColorFilter.mode(
+              Colors.black
+                  .withOpacity(.45),
               BlendMode.darken,
             ),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black
+                  .withOpacity(.08),
+              blurRadius: 10,
+              offset:
+              const Offset(0, 5),
+            ),
+          ],
         ),
-
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-
-          child: Row(
-            children: [
-
-              Container(
-                padding: const EdgeInsets.all(12),
-
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.2),
-                  shape: BoxShape.circle,
-                ),
-
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 30,
-                ),
+        child: Column(
+          mainAxisAlignment:
+          MainAxisAlignment.center,
+          children: [
+            Container(
+              padding:
+              const EdgeInsets.all(10),
+              decoration:
+              BoxDecoration(
+                color: Colors.white
+                    .withOpacity(.9),
+                shape: BoxShape.circle,
               ),
-
-              const SizedBox(width: 15),
-
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Icon(
+                icon,
+                color: Colors.black,
+                size: 25,
               ),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              title,
+              textAlign:
+              TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight:
+                FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // FIRESTORE PLACES
+  // PLACES
   Widget _places() {
     return StreamBuilder<QuerySnapshot>(
       stream: getPlaces(),
-
       builder: (context, snapshot) {
-
         if (snapshot.hasError) {
           return Text(
             "Firebase Error:\n${snapshot.error}",
@@ -679,8 +616,10 @@ class _HomePageState extends State<HomePage> {
             ConnectionState.waiting) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(30),
-              child: CircularProgressIndicator(),
+              padding:
+              EdgeInsets.all(30),
+              child:
+              CircularProgressIndicator(),
             ),
           );
         }
@@ -696,46 +635,57 @@ class _HomePageState extends State<HomePage> {
         search.text.toLowerCase();
 
         final places =
-        snapshot.data!.docs.where((place) {
+        snapshot.data!.docs.where(
+              (place) {
+            final data =
+            place.data()
+            as Map<String, dynamic>;
 
-          final data =
-          place.data() as Map<String, dynamic>;
+            final name =
+                data['name']
+                    ?.toString()
+                    .toLowerCase() ??
+                    "";
 
-          final name =
-              data['name']?.toString().toLowerCase() ?? "";
+            final city =
+                data['city']
+                    ?.toString()
+                    .toLowerCase() ??
+                    "";
 
-          final city =
-              data['city']?.toString().toLowerCase() ?? "";
-
-          return name.contains(searchText) ||
-              city.contains(searchText);
-
-        }).toList();
+            return name.contains(
+              searchText,
+            ) ||
+                city.contains(
+                  searchText,
+                );
+          },
+        ).toList();
 
         if (places.isEmpty) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding:
+              EdgeInsets.all(20),
               child: Text(
                 "No matching places found",
-                style: TextStyle(
-                  fontSize: 16,
-                ),
               ),
             ),
           );
         }
 
         return LayoutBuilder(
-          builder: (context, constraints) {
-
+          builder:
+              (context, constraints) {
             int count = 3;
 
-            if (constraints.maxWidth < 1000) {
+            if (constraints.maxWidth <
+                1000) {
               count = 2;
             }
 
-            if (constraints.maxWidth < 600) {
+            if (constraints.maxWidth <
+                600) {
               count = 1;
             }
 
@@ -743,42 +693,57 @@ class _HomePageState extends State<HomePage> {
               shrinkWrap: true,
               physics:
               const NeverScrollableScrollPhysics(),
-
-              itemCount: places.length,
-
+              itemCount:
+              places.length,
               gridDelegate:
               SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: count,
+                crossAxisCount:
+                count,
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
-                childAspectRatio: 1.45,
+                childAspectRatio: 1.55,
               ),
-
-              itemBuilder: (context, index) {
-
-                final place = places[index];
+              itemBuilder:
+                  (context, index) {
+                final place =
+                places[index];
 
                 final data =
                 place.data()
                 as Map<String, dynamic>;
 
                 final latitude =
-                (data['latitude'] as num?)
+                (data['latitude']
+                as num?)
                     ?.toDouble();
 
                 final longitude =
-                (data['longitude'] as num?)
+                (data['longitude']
+                as num?)
                     ?.toDouble();
 
                 return _placeCard(
                   place.id,
-                  data['name']?.toString() ?? "Unknown Place",
-                  data['city']?.toString() ?? "Maharashtra",
-                  data['location']?.toString() ?? "Maharashtra",
-                  data['category']?.toString() ?? "",
+                  data['name']
+                      ?.toString() ??
+                      "Unknown Place",
+                  data['city']
+                      ?.toString() ??
+                      "Maharashtra",
+                  data['location']
+                      ?.toString() ??
+                      "Maharashtra",
+                  data['category']
+                      ?.toString() ??
+                      "",
                   latitude,
                   longitude,
-                  data['imageUrl']?.toString() ?? "",
+                  data['imageUrl']
+                      ?.toString() ??
+                      "",
+                  data['description']
+                      ?.toString() ??
+                      "",
                 );
               },
             );
@@ -798,392 +763,260 @@ class _HomePageState extends State<HomePage> {
       double? latitude,
       double? longitude,
       String imageUrl,
-      ){
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.12),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+      String description,
+      ) {
+    return InkWell(
+      borderRadius:
+      BorderRadius.circular(20),
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                PlaceDetailsPage(
+                  placeId: placeId,
+                  title: title,
+                  city: city,
+                  location: location,
+                  category: category,
+                  latitude: latitude,
+                  longitude: longitude,
+                  imageUrl: imageUrl,
+                  description: description,
+                ),
           ),
-        ],
-      ),
+        );
+      },
 
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius:
+          BorderRadius.circular(20),
 
-        child: Stack(
-          children: [
-
-            // --------------------------------
-            // BACKGROUND IMAGE
-            // --------------------------------
-            Positioned.fill(
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-
-                errorBuilder:
-                    (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey.shade300,
-                    child: const Icon(
-                      Icons.image_not_supported,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                  );
-                },
-              )
-                  : Container(
-                color: Colors.grey.shade300,
-                child: const Icon(
-                  Icons.image,
-                  size: 50,
-                  color: Colors.grey,
-                ),
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black
+                  .withOpacity(.12),
+              blurRadius: 12,
+              offset:
+              const Offset(0, 5),
             ),
+          ],
+        ),
 
-            // --------------------------------
-            // DARK OVERLAY
-            // --------------------------------
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(.15),
-                      Colors.black.withOpacity(.25),
-                      Colors.black.withOpacity(.75),
-                    ],
+        child: ClipRRect(
+          borderRadius:
+          BorderRadius.circular(20),
+
+          child: Stack(
+            children: [
+              // IMAGE
+              Positioned.fill(
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.fill,
+                  errorBuilder:
+                      (context,
+                      error,
+                      stackTrace) {
+                    return Container(
+                      color: Colors
+                          .grey
+                          .shade300,
+                      child:
+                      const Icon(
+                        Icons
+                            .image_not_supported,
+                        size: 50,
+                      ),
+                    );
+                  },
+                )
+                    : Container(
+                  color:
+                  Colors.grey.shade300,
+                  child:
+                  const Icon(
+                    Icons.image,
+                    size: 50,
                   ),
                 ),
               ),
-            ),
 
-            // --------------------------------
-            // CARD CONTENT
-            // --------------------------------
-            Padding(
-              padding: const EdgeInsets.all(18),
-
-              child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
-
-                children: [
-
-                  // --------------------------------
-                  // TOP ROW
-                  // --------------------------------
-                  Row(
-                    children: [
-
-                      // PLACE ICON
-                      Container(
-                        padding:
-                        const EdgeInsets.all(10),
-
-                        decoration: BoxDecoration(
-                          color: Colors.white
-                              .withOpacity(.85),
-                          borderRadius:
-                          BorderRadius.circular(14),
-                        ),
-
-                        child: const Icon(
-                          Icons.location_city,
-                          size: 27,
-                          color: Colors.black87,
-                        ),
-                      ),
-
-                      const Spacer(),
-
-                      // FAVORITE BUTTON
-                      StreamBuilder<bool>(
-                        stream: isFavorite(placeId),
-
-                        builder:
-                            (context, snapshot) {
-
-                          final favorite =
-                              snapshot.data ?? false;
-
-                          return Container(
-                            decoration:
-                            const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-
-                            child: IconButton(
-                              icon: Icon(
-                                favorite
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-
-                                color: favorite
-                                    ? Colors.red
-                                    : Colors.grey.shade700,
-                              ),
-
-                              onPressed: () {
-                                toggleFavorite(placeId);
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  // --------------------------------
-                  // PLACE NAME
-                  // --------------------------------
-                  Text(
-                    title,
-
-                    maxLines: 1,
-
-                    overflow:
-                    TextOverflow.ellipsis,
-
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-
-                      shadows: [
-                        Shadow(
-                          color: Colors.black54,
-                          blurRadius: 5,
-                        ),
+              // DARK GRADIENT
+              Positioned.fill(
+                child: Container(
+                  decoration:
+                  BoxDecoration(
+                    gradient:
+                    LinearGradient(
+                      begin:
+                      Alignment.topCenter,
+                      end:
+                      Alignment.bottomCenter,
+                      colors: [
+                        Colors.black
+                            .withOpacity(.05),
+                        Colors.black
+                            .withOpacity(.2),
+                        Colors.black
+                            .withOpacity(.8),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 6),
-
-                  // --------------------------------
-                  // CITY
-                  // --------------------------------
-                  Row(
-                    children: [
-
-                      const Icon(
-                        Icons.location_on,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-
-                      const SizedBox(width: 4),
-
-                      Expanded(
-                        child: Text(
-                          city,
-
-                          overflow:
-                          TextOverflow.ellipsis,
-
-                          style:
-                          const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            shadows: [
-                              Shadow(
-                                color:
-                                Colors.black54,
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  // --------------------------------
-                  // MAP + SAVE
-                  // --------------------------------
-                  Row(
-                    children: [
-
-                      // MAP BUTTON
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-
-                            // SAVE TO HISTORY
-                            await addToHistory(
-                              placeId: placeId,
-                              placeName: title,
-                              city: city,
-                              category: category,
-                            );
-
-                            // OPEN MAP
-                            if (latitude != null &&
-                                longitude != null) {
-
-                              await openLocation(
-                                latitude,
-                                longitude,
-                              );
-
-                            } else {
-
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Location is not available",
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-
-                          icon: const Icon(
-                            Icons.map_outlined,
-                            size: 18,
-                          ),
-
-                          label:
-                          const Text("Map"),
-
-                          style:
-                          OutlinedButton.styleFrom(
-                            foregroundColor:
-                            Colors.white,
-
-                            side:
-                            const BorderSide(
-                              color: Colors.white,
-                            ),
-
-                            backgroundColor:
-                            Colors.black
-                                .withOpacity(.25),
-
-                            shape:
-                            RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(
-                                  12),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      // LODGE BUTTON
-                      Expanded(
-                      child: OutlinedButton.icon(
-                      onPressed: () {
-                      openLodge(title);
-                      },
-
-                      icon: const Icon(
-                      Icons.hotel_outlined,
-                      size: 18,
-                      ),
-
-                      label: const Text("Lodge"),
-
-                      style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(
-                      color: Colors.white,
-                      ),
-                      backgroundColor: Colors.black.withOpacity(.25),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      // Food button
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            if (latitude != null && longitude != null) {
-                              openFood(latitude, longitude);
-                            }
-                          },
-                          icon: const Icon(
-                            Icons.restaurant_outlined,
-                            size: 18,
-                          ),
-                          label: const Text("Food"),
-                        ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      // SAVE BUTTON
-                      StreamBuilder<bool>(
-                        stream: isSaved(placeId),
-
-                        builder:
-                            (context, snapshot) {
-
-                          final saved =
-                              snapshot.data ?? false;
-
-                          return Container(
-                            decoration:
-                            BoxDecoration(
-                              color: Colors.white
-                                  .withOpacity(.9),
-                              borderRadius:
-                              BorderRadius.circular(
-                                  12),
-                            ),
-
-                            child: IconButton(
-                              icon: Icon(
-                                saved
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
-
-                                color: saved
-                                    ? Colors.blue
-                                    : Colors.grey.shade700,
-                              ),
-
-                              tooltip: saved
-                                  ? "Remove from saved"
-                                  : "Save place",
-
-                              onPressed: () {
-                                toggleSaved(placeId);
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+
+              // CONTENT
+              Padding(
+                padding:
+                const EdgeInsets.all(18),
+
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
+                  children: [
+                    Row(
+                      children: [
+                        const Spacer(),
+
+                        StreamBuilder<bool>(
+                          stream:
+                          isFavorite(
+                            placeId,
+                          ),
+                          builder:
+                              (context,
+                              snapshot) {
+                            final favorite =
+                                snapshot.data ??
+                                    false;
+
+                            return Container(
+                              decoration:
+                              const BoxDecoration(
+                                color:
+                                Colors.white,
+                                shape:
+                                BoxShape.circle,
+                              ),
+                              child:
+                              IconButton(
+                                icon: Icon(
+                                  favorite
+                                      ? Icons
+                                      .favorite
+                                      : Icons
+                                      .favorite_border,
+                                  color: favorite
+                                      ? Colors.red
+                                      : Colors
+                                      .grey
+                                      .shade700,
+                                ),
+                                onPressed: () {
+                                  toggleFavorite(
+                                    placeId,
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+
+                    const Spacer(),
+
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow:
+                      TextOverflow.ellipsis,
+                      style:
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight:
+                        FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color:
+                            Colors.black54,
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 6,
+                    ),
+
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color:
+                          Colors.white,
+                        ),
+
+                        const SizedBox(
+                          width: 4,
+                        ),
+
+                        Expanded(
+                          child: Text(
+                            city,
+                            overflow:
+                            TextOverflow
+                                .ellipsis,
+                            style:
+                            const TextStyle(
+                              color:
+                              Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(
+                      height: 10,
+                    ),
+
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.arrow_forward,
+                          color:
+                          Colors.white,
+                          size: 17,
+                        ),
+                        SizedBox(width: 5),
+                        Text(
+                          "View Details",
+                          style:
+                          TextStyle(
+                            color:
+                            Colors.white,
+                            fontWeight:
+                            FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1193,35 +1026,30 @@ class _HomePageState extends State<HomePage> {
   Widget _startJourney() {
     return Container(
       width: double.infinity,
-
-      padding: const EdgeInsets.all(30),
-
+      padding:
+      const EdgeInsets.all(30),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
+        borderRadius:
+        BorderRadius.circular(25),
         color: Colors.black,
       ),
-
       child: Row(
         children: [
-
           const Expanded(
             child: Column(
               crossAxisAlignment:
               CrossAxisAlignment.start,
-
               children: [
-
                 Text(
                   "Ready for your next adventure?",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                    FontWeight.bold,
                   ),
                 ),
-
                 SizedBox(height: 8),
-
                 Text(
                   "Explore the beauty of Maharashtra.",
                   style: TextStyle(
@@ -1235,11 +1063,10 @@ class _HomePageState extends State<HomePage> {
 
           ElevatedButton(
             onPressed: () {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(
-                const SnackBar(
-                  content:
-                  Text("🌄 Your journey begins!"),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TripPlannerPage(),
                 ),
               );
             },
@@ -1254,13 +1081,12 @@ class _HomePageState extends State<HomePage> {
               ),
 
               shape: RoundedRectangleBorder(
-                borderRadius:
-                BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(30),
               ),
             ),
 
             child: const Text(
-              "Explore Now",
+              "Plan My Trip",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
               ),
@@ -1272,33 +1098,30 @@ class _HomePageState extends State<HomePage> {
   }
 
   // DRAWER
-  Widget _drawer(BuildContext context) {
+  Widget _drawer(
+      BuildContext context) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-
         children: [
-
           const UserAccountsDrawerHeader(
-            decoration: BoxDecoration(
+            decoration:
+            BoxDecoration(
               color: Colors.black,
             ),
-
             accountName: Text(
               "Traveler",
               style: TextStyle(
                 fontSize: 18,
               ),
             ),
-
             accountEmail: Text(
               "Explore Maharashtra",
             ),
-
             currentAccountPicture:
             CircleAvatar(
-              backgroundColor: Colors.white,
-
+              backgroundColor:
+              Colors.white,
               child: Icon(
                 Icons.person,
                 color: Colors.black,
@@ -1334,18 +1157,21 @@ class _HomePageState extends State<HomePage> {
           const Divider(),
 
           ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text("Logout"),
-
+            leading:
+            const Icon(Icons.logout),
+            title:
+            const Text("Logout"),
             onTap: () async {
+              await FirebaseAuth
+                  .instance
+                  .signOut();
 
-              await FirebaseAuth.instance.signOut();
-
-              if (!context.mounted) return;
+              if (!context.mounted) {
+                return;
+              }
 
               Navigator.pushReplacement(
                 context,
-
                 MaterialPageRoute(
                   builder: (_) =>
                   const LoginPage(),
@@ -1366,7 +1192,6 @@ class _HomePageState extends State<HomePage> {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
-
       onTap: () {
         Navigator.pop(context);
 
@@ -1374,38 +1199,42 @@ class _HomePageState extends State<HomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const ProfilePage(),
+              builder: (_) =>
+              const ProfilePage(),
             ),
           );
-        }
-
-        else if (title == "History") {
+        } else if (title == "History") {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const HistoryPage(),
+              builder: (_) =>
+              const HistoryPage(),
             ),
           );
-        }
-
-        else if (title == "Favorites") {
+        } else if (title == "Favorites") {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const FavoritePage(),
+              builder: (_) =>
+              const FavoritePage(),
             ),
           );
-        }
-
-        else if (title == "Saved") {
+        } else if (title == "Saved") {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const SavedPage(),
+              builder: (_) =>
+              const SavedPage(),
             ),
           );
         }
       },
     );
+  }
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
   }
 }
