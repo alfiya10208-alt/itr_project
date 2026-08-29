@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:internship/login_page.dart';
 import 'dart:async';
-import 'home_page.dart';
 
 class SplashScreen extends StatefulWidget {
   
@@ -51,14 +50,6 @@ class _SplashScreenState extends State<SplashScreen> {
               children: const [
                 Icon(Icons.travel_explore, color: Colors.white, size: 80),
                 SizedBox(height: 20),
-                // Text(
-                //   "MahaExplore",
-                //   style: TextStyle(
-                //     color: Colors.white,
-                //     fontSize: 32,
-                //     fontWeight: FontWeight.bold,
-                //   ),
-                // ),
               ],
             ),
           )
