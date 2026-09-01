@@ -21,6 +21,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController search = TextEditingController();
 
+  // COLORS
+  static const Color charcoal = Color(0xFF1F2933);
+  static const Color teal = Color(0xFF2A9D8F);
+  static const Color lightGray = Color(0xFFF1F3F4);
+
+  // CATEGORIES
   final categories = [
     ["Historical", Icons.account_balance, "assets/historical.jpg"],
     ["Spiritual", Icons.temple_hindu, "assets/spiritual.jpg"],
@@ -33,7 +39,11 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: charcoal,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -85,7 +95,7 @@ class _HomePageState extends State<HomePage> {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    showMessage("Added to favorites ❤️");
+    showMessage("Added to favorites");
   }
 
   Stream<bool> isFavorite(String placeId) {
@@ -168,7 +178,7 @@ class _HomePageState extends State<HomePage> {
       'savedAt': FieldValue.serverTimestamp(),
     });
 
-    showMessage("Saved successfully 🔖");
+    showMessage("Saved successfully");
   }
 
   // FIRESTORE
@@ -182,12 +192,14 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: lightGray,
+
       drawer: _drawer(context),
 
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.black,
+        backgroundColor: teal,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.chat),
+        icon: const Icon(Icons.chat_outlined),
         label: const Text("Travel Assistant"),
         onPressed: () {
           Navigator.push(
@@ -204,7 +216,6 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             children: [
               _topBar(),
-
               _hero(),
 
               Padding(
@@ -258,9 +269,9 @@ class _HomePageState extends State<HomePage> {
         25,
         20,
         25,
-        15,
+        18,
       ),
-      color: Colors.white,
+      color: charcoal,
       child: Column(
         crossAxisAlignment:
         CrossAxisAlignment.start,
@@ -273,10 +284,10 @@ class _HomePageState extends State<HomePage> {
                     icon: const Icon(
                       Icons.menu,
                       size: 28,
+                      color: Colors.white,
                     ),
                     onPressed: () {
-                      Scaffold.of(context)
-                          .openDrawer();
+                      Scaffold.of(context).openDrawer();
                     },
                   );
                 },
@@ -284,35 +295,38 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(width: 5),
 
-              const Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Hello, Traveler! 👋",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight:
-                      FontWeight.bold,
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Hello, Traveler! 👋",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    "Where do you want to explore today?",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
 
-              const Spacer(),
+                    SizedBox(height: 3),
+
+                    Text(
+                      "Where do you want to explore today?",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               IconButton(
                 icon: const Icon(
                   Icons.notifications_none,
                   size: 27,
+                  color: Colors.white,
                 ),
                 onPressed: () {},
               ),
@@ -327,15 +341,19 @@ class _HomePageState extends State<HomePage> {
               setState(() {});
             },
             decoration: InputDecoration(
-              hintText:
-              "Search places, cities...",
-              prefixIcon:
-              const Icon(Icons.search),
-              suffixIcon:
-              search.text.isNotEmpty
+              hintText: "Search places, cities...",
+              hintStyle: const TextStyle(
+                color: Colors.grey,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: charcoal,
+              ),
+              suffixIcon: search.text.isNotEmpty
                   ? IconButton(
                 icon: const Icon(
                   Icons.clear,
+                  color: charcoal,
                 ),
                 onPressed: () {
                   search.clear();
@@ -344,8 +362,7 @@ class _HomePageState extends State<HomePage> {
               )
                   : null,
               filled: true,
-              fillColor:
-              Colors.grey.shade100,
+              fillColor: Colors.white,
               contentPadding:
               const EdgeInsets.symmetric(
                 vertical: 15,
@@ -353,8 +370,7 @@ class _HomePageState extends State<HomePage> {
               border: OutlineInputBorder(
                 borderRadius:
                 BorderRadius.circular(30),
-                borderSide:
-                BorderSide.none,
+                borderSide: BorderSide.none,
               ),
             ),
           ),
@@ -367,7 +383,7 @@ class _HomePageState extends State<HomePage> {
   Widget _hero() {
     return SizedBox(
       width: double.infinity,
-      height: 450,
+      height: 460,
       child: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
@@ -378,60 +394,58 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         child: Container(
-          padding:
-          const EdgeInsets.all(50),
+          padding: const EdgeInsets.all(50),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin:
-              Alignment.bottomLeft,
-              end:
-              Alignment.topRight,
+              begin: Alignment.bottomLeft,
+              end: Alignment.topRight,
               colors: [
-                Colors.black
-                    .withOpacity(.75),
-                Colors.transparent,
+                charcoal.withOpacity(.90),
+                charcoal.withOpacity(.15),
               ],
             ),
           ),
-          child: const Column(
+          child: Column(
             mainAxisAlignment:
             MainAxisAlignment.end,
             crossAxisAlignment:
             CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 "Discover महाराष्ट्र माझा",
                 style: TextStyle(
                   color: Colors.deepOrange,
                   fontSize: 48,
-                  fontWeight:
-                  FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
 
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-              Text(
+              const Text(
                 "Explore.",
                 style: TextStyle(
-                  color: Colors.deepOrange,
+                  color: Colors.white,
                   fontSize: 25,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
 
               Text(
                 "Experience.",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: teal,
                   fontSize: 25,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
 
-              Text(
+              const Text(
                 "Remember.",
                 style: TextStyle(
-                  color: Colors.green,
+                  color: Colors.white,
                   fontSize: 25,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -453,9 +467,9 @@ class _HomePageState extends State<HomePage> {
         Text(
           title,
           style: const TextStyle(
+            color: charcoal,
             fontSize: 28,
-            fontWeight:
-            FontWeight.bold,
+            fontWeight: FontWeight.bold,
           ),
         ),
 
@@ -465,8 +479,7 @@ class _HomePageState extends State<HomePage> {
           subtitle,
           style: TextStyle(
             fontSize: 15,
-            color:
-            Colors.grey.shade600,
+            color: Colors.grey.shade600,
           ),
         ),
       ],
@@ -483,10 +496,6 @@ class _HomePageState extends State<HomePage> {
           count = 2;
         }
 
-        if (constraints.maxWidth < 500) {
-          count = 2;
-        }
-
         return GridView.builder(
           shrinkWrap: true,
           physics:
@@ -499,10 +508,8 @@ class _HomePageState extends State<HomePage> {
             mainAxisSpacing: 15,
             childAspectRatio: 1.4,
           ),
-          itemBuilder:
-              (context, index) {
-            final category =
-            categories[index];
+          itemBuilder: (context, index) {
+            final category = categories[index];
 
             return _categoryCard(
               category[0] as String,
@@ -528,10 +535,9 @@ class _HomePageState extends State<HomePage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                CategoryPage(
-                  category: title,
-                ),
+            builder: (_) => CategoryPage(
+              category: title,
+            ),
           ),
         );
       },
@@ -544,15 +550,14 @@ class _HomePageState extends State<HomePage> {
             fit: BoxFit.cover,
             colorFilter:
             ColorFilter.mode(
-              Colors.black
-                  .withOpacity(.45),
+              charcoal.withOpacity(.55),
               BlendMode.darken,
             ),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black
-                  .withOpacity(.08),
+              color:
+              Colors.black.withOpacity(.08),
               blurRadius: 10,
               offset:
               const Offset(0, 5),
@@ -567,14 +572,13 @@ class _HomePageState extends State<HomePage> {
               padding:
               const EdgeInsets.all(10),
               decoration:
-              BoxDecoration(
-                color: Colors.white
-                    .withOpacity(.9),
+              const BoxDecoration(
+                color: Colors.white,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                color: Colors.black,
+                color: teal,
                 size: 25,
               ),
             ),
@@ -583,13 +587,11 @@ class _HomePageState extends State<HomePage> {
 
             Text(
               title,
-              textAlign:
-              TextAlign.center,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 15,
-                fontWeight:
-                FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -616,10 +618,10 @@ class _HomePageState extends State<HomePage> {
             ConnectionState.waiting) {
           return const Center(
             child: Padding(
-              padding:
-              EdgeInsets.all(30),
-              child:
-              CircularProgressIndicator(),
+              padding: EdgeInsets.all(30),
+              child: CircularProgressIndicator(
+                color: teal,
+              ),
             ),
           );
         }
@@ -653,20 +655,15 @@ class _HomePageState extends State<HomePage> {
                     .toLowerCase() ??
                     "";
 
-            return name.contains(
-              searchText,
-            ) ||
-                city.contains(
-                  searchText,
-                );
+            return name.contains(searchText) ||
+                city.contains(searchText);
           },
         ).toList();
 
         if (places.isEmpty) {
           return const Center(
             child: Padding(
-              padding:
-              EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               child: Text(
                 "No matching places found",
               ),
@@ -675,17 +672,14 @@ class _HomePageState extends State<HomePage> {
         }
 
         return LayoutBuilder(
-          builder:
-              (context, constraints) {
+          builder: (context, constraints) {
             int count = 3;
 
-            if (constraints.maxWidth <
-                1000) {
+            if (constraints.maxWidth < 1000) {
               count = 2;
             }
 
-            if (constraints.maxWidth <
-                600) {
+            if (constraints.maxWidth < 600) {
               count = 1;
             }
 
@@ -693,33 +687,28 @@ class _HomePageState extends State<HomePage> {
               shrinkWrap: true,
               physics:
               const NeverScrollableScrollPhysics(),
-              itemCount:
-              places.length,
+              itemCount: places.length,
               gridDelegate:
               SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:
-                count,
+                crossAxisCount: count,
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
                 childAspectRatio: 1.55,
               ),
               itemBuilder:
                   (context, index) {
-                final place =
-                places[index];
+                final place = places[index];
 
                 final data =
                 place.data()
                 as Map<String, dynamic>;
 
                 final latitude =
-                (data['latitude']
-                as num?)
+                (data['latitude'] as num?)
                     ?.toDouble();
 
                 final longitude =
-                (data['longitude']
-                as num?)
+                (data['longitude'] as num?)
                     ?.toDouble();
 
                 return _placeCard(
@@ -768,7 +757,6 @@ class _HomePageState extends State<HomePage> {
     return InkWell(
       borderRadius:
       BorderRadius.circular(20),
-
       onTap: () {
         Navigator.push(
           context,
@@ -788,27 +776,23 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       },
-
       child: Container(
         decoration: BoxDecoration(
           borderRadius:
           BorderRadius.circular(20),
-
           boxShadow: [
             BoxShadow(
-              color: Colors.black
-                  .withOpacity(.12),
+              color:
+              Colors.black.withOpacity(.12),
               blurRadius: 12,
               offset:
               const Offset(0, 5),
             ),
           ],
         ),
-
         child: ClipRRect(
           borderRadius:
           BorderRadius.circular(20),
-
           child: Stack(
             children: [
               // IMAGE
@@ -816,17 +800,13 @@ class _HomePageState extends State<HomePage> {
                 child: imageUrl.isNotEmpty
                     ? Image.network(
                   imageUrl,
-                  fit: BoxFit.fill,
+                  fit: BoxFit.cover,
                   errorBuilder:
-                      (context,
-                      error,
-                      stackTrace) {
+                      (context, error, stackTrace) {
                     return Container(
-                      color: Colors
-                          .grey
-                          .shade300,
-                      child:
-                      const Icon(
+                      color:
+                      Colors.grey.shade300,
+                      child: const Icon(
                         Icons
                             .image_not_supported,
                         size: 50,
@@ -837,15 +817,14 @@ class _HomePageState extends State<HomePage> {
                     : Container(
                   color:
                   Colors.grey.shade300,
-                  child:
-                  const Icon(
+                  child: const Icon(
                     Icons.image,
                     size: 50,
                   ),
                 ),
               ),
 
-              // DARK GRADIENT
+              // GRADIENT
               Positioned.fill(
                 child: Container(
                   decoration:
@@ -857,12 +836,9 @@ class _HomePageState extends State<HomePage> {
                       end:
                       Alignment.bottomCenter,
                       colors: [
-                        Colors.black
-                            .withOpacity(.05),
-                        Colors.black
-                            .withOpacity(.2),
-                        Colors.black
-                            .withOpacity(.8),
+                        charcoal.withOpacity(.05),
+                        charcoal.withOpacity(.25),
+                        charcoal.withOpacity(.90),
                       ],
                     ),
                   ),
@@ -873,11 +849,9 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding:
                 const EdgeInsets.all(18),
-
                 child: Column(
                   crossAxisAlignment:
                   CrossAxisAlignment.start,
-
                   children: [
                     Row(
                       children: [
@@ -885,12 +859,9 @@ class _HomePageState extends State<HomePage> {
 
                         StreamBuilder<bool>(
                           stream:
-                          isFavorite(
-                            placeId,
-                          ),
+                          isFavorite(placeId),
                           builder:
-                              (context,
-                              snapshot) {
+                              (context, snapshot) {
                             final favorite =
                                 snapshot.data ??
                                     false;
@@ -898,24 +869,17 @@ class _HomePageState extends State<HomePage> {
                             return Container(
                               decoration:
                               const BoxDecoration(
-                                color:
-                                Colors.white,
-                                shape:
-                                BoxShape.circle,
+                                color: Colors.white,
+                                shape: BoxShape.circle,
                               ),
-                              child:
-                              IconButton(
+                              child: IconButton(
                                 icon: Icon(
                                   favorite
-                                      ? Icons
-                                      .favorite
-                                      : Icons
-                                      .favorite_border,
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
                                   color: favorite
-                                      ? Colors.red
-                                      : Colors
-                                      .grey
-                                      .shade700,
+                                      ? teal
+                                      : charcoal,
                                 ),
                                 onPressed: () {
                                   toggleFavorite(
@@ -936,49 +900,33 @@ class _HomePageState extends State<HomePage> {
                       maxLines: 1,
                       overflow:
                       TextOverflow.ellipsis,
-                      style:
-                      const TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
-                        fontWeight:
-                        FontWeight.bold,
-                        shadows: [
-                          Shadow(
-                            color:
-                            Colors.black54,
-                            blurRadius: 5,
-                          ),
-                        ],
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(
-                      height: 6,
-                    ),
+                    const SizedBox(height: 6),
 
                     Row(
                       children: [
                         const Icon(
                           Icons.location_on,
                           size: 16,
-                          color:
-                          Colors.white,
+                          color: teal,
                         ),
 
-                        const SizedBox(
-                          width: 4,
-                        ),
+                        const SizedBox(width: 4),
 
                         Expanded(
                           child: Text(
                             city,
                             overflow:
-                            TextOverflow
-                                .ellipsis,
+                            TextOverflow.ellipsis,
                             style:
                             const TextStyle(
-                              color:
-                              Colors.white,
+                              color: Colors.white,
                               fontSize: 14,
                             ),
                           ),
@@ -986,27 +934,21 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
 
-                    const SizedBox(
-                      height: 10,
-                    ),
+                    const SizedBox(height: 10),
 
                     const Row(
                       children: [
                         Icon(
                           Icons.arrow_forward,
-                          color:
-                          Colors.white,
+                          color: teal,
                           size: 17,
                         ),
                         SizedBox(width: 5),
                         Text(
                           "View Details",
-                          style:
-                          TextStyle(
-                            color:
-                            Colors.white,
-                            fontWeight:
-                            FontWeight.bold,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
                         ),
@@ -1031,7 +973,7 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         borderRadius:
         BorderRadius.circular(25),
-        color: Colors.black,
+        color: charcoal,
       ),
       child: Row(
         children: [
@@ -1045,11 +987,12 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
-                    fontWeight:
-                    FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 SizedBox(height: 8),
+
                 Text(
                   "Explore the beauty of Maharashtra.",
                   style: TextStyle(
@@ -1066,25 +1009,25 @@ class _HomePageState extends State<HomePage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const TripPlannerPage(),
+                  builder: (_) =>
+                  const TripPlannerPage(),
                 ),
               );
             },
-
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-
-              padding: const EdgeInsets.symmetric(
+              backgroundColor: teal,
+              foregroundColor: Colors.white,
+              padding:
+              const EdgeInsets.symmetric(
                 horizontal: 25,
                 vertical: 15,
               ),
-
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+              shape:
+              RoundedRectangleBorder(
+                borderRadius:
+                BorderRadius.circular(30),
               ),
             ),
-
             child: const Text(
               "Plan My Trip",
               style: TextStyle(
@@ -1098,16 +1041,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   // DRAWER
-  Widget _drawer(
-      BuildContext context) {
+  Widget _drawer(BuildContext context) {
     return Drawer(
+      backgroundColor: lightGray,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           const UserAccountsDrawerHeader(
             decoration:
             BoxDecoration(
-              color: Colors.black,
+              color: charcoal,
             ),
             accountName: Text(
               "Traveler",
@@ -1120,11 +1063,10 @@ class _HomePageState extends State<HomePage> {
             ),
             currentAccountPicture:
             CircleAvatar(
-              backgroundColor:
-              Colors.white,
+              backgroundColor: teal,
               child: Icon(
                 Icons.person,
-                color: Colors.black,
+                color: Colors.white,
                 size: 30,
               ),
             ),
@@ -1132,7 +1074,7 @@ class _HomePageState extends State<HomePage> {
 
           _drawerItem(
             context,
-            Icons.person,
+            Icons.person_outline,
             "Profile",
           ),
 
@@ -1144,26 +1086,26 @@ class _HomePageState extends State<HomePage> {
 
           _drawerItem(
             context,
-            Icons.favorite,
+            Icons.favorite_outline,
             "Favorites",
           ),
 
           _drawerItem(
             context,
-            Icons.bookmark,
+            Icons.bookmark_outline,
             "Saved",
           ),
 
           const Divider(),
 
           ListTile(
-            leading:
-            const Icon(Icons.logout),
-            title:
-            const Text("Logout"),
+            leading: const Icon(
+              Icons.logout,
+              color: charcoal,
+            ),
+            title: const Text("Logout"),
             onTap: () async {
-              await FirebaseAuth
-                  .instance
+              await FirebaseAuth.instance
                   .signOut();
 
               if (!context.mounted) {
@@ -1184,14 +1126,24 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // DRAWER ITEM
   Widget _drawerItem(
       BuildContext context,
       IconData icon,
       String title,
       ) {
     return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
+      leading: Icon(
+        icon,
+        color: charcoal,
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: charcoal,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
       onTap: () {
         Navigator.pop(context);
 
@@ -1232,6 +1184,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // DISPOSE
   @override
   void dispose() {
     search.dispose();
