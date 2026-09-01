@@ -1,0 +1,800 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart';
+
+class PlaceDetailsPage extends StatefulWidget {
+  final String placeId;
+  final String title;
+  final String city;
+  final String location;
+  final String category;
+  final double? latitude;
+  final double? longitude;
+  final String imageUrl;
+  final String description;
+
+  const PlaceDetailsPage({
+    super.key,
+    required this.placeId,
+    required this.title,
+    required this.city,
+    required this.location,
+    required this.category,
+    required this.latitude,
+    required this.longitude,
+    required this.imageUrl,
+    required this.description,
+  });
+
+  @override
+  State<PlaceDetailsPage> createState() =>
+      _PlaceDetailsPageState();
+}
+
+class _PlaceDetailsPageState
+    extends State<PlaceDetailsPage> {
+
+  // MESSAGE
+  void showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.black87,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  // INIT
+  @override
+  void initState() {
+    super.initState();
+    addToHistory();
+  }
+
+  // HISTORY
+  Future<void> addToHistory() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('history')
+          .add({
+        'userId': user.uid,
+        'placeId': widget.placeId,
+        'placeName': widget.title,
+        'city': widget.city,
+        'category': widget.category,
+        'visitedAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint(
+        "History saved: ${widget.title}",
+      );
+    } catch (e) {
+      debugPrint(
+        "History error: $e",
+      );
+    }
+  }
+
+  // SAVED
+  Stream<bool> isSaved() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Stream.value(false);
+    }
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved')
+        .doc(widget.placeId)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
+
+  Future<void> toggleSaved() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      showMessage("Please login first");
+      return;
+    }
+
+    final ref = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved')
+        .doc(widget.placeId);
+
+    final doc = await ref.get();
+
+    if (doc.exists) {
+      await ref.delete();
+      showMessage("Removed from saved");
+      return;
+    }
+
+    await ref.set({
+      'placeId': widget.placeId,
+      'name': widget.title,
+      'city': widget.city,
+      'location': widget.location,
+      'category': widget.category,
+      'imageUrl': widget.imageUrl,
+      'description': widget.description,
+      'latitude': widget.latitude,
+      'longitude': widget.longitude,
+      'savedAt': FieldValue.serverTimestamp(),
+    });
+
+    showMessage("Saved successfully 🔖");
+  }
+
+  // MAP
+  Future<void> openMap() async {
+    if (widget.latitude == null ||
+        widget.longitude == null) {
+      showMessage("Location is not available");
+      return;
+    }
+
+    if (kIsWeb) {
+      final url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1'
+            '&query=${widget.latitude},${widget.longitude}',
+      );
+
+      await launchUrl(
+        url,
+        webOnlyWindowName: '_blank',
+      );
+    } else {
+      final geo = Uri(
+        scheme: 'geo',
+        path:
+        '${widget.latitude},${widget.longitude}',
+      );
+
+      await launchUrl(geo);
+    }
+  }
+
+  // LODGE
+  Future<void> openLodge() async {
+    final place =
+    Uri.encodeComponent(widget.title);
+
+    final url = Uri.parse(
+      'https://www.google.com/maps/search/hotels+near+$place',
+    );
+
+    await launchUrl(
+      url,
+      webOnlyWindowName: '_blank',
+    );
+  }
+
+  // FOOD
+  Future<void> openFood() async {
+    if (widget.latitude == null ||
+        widget.longitude == null) {
+      showMessage("Location is not available");
+      return;
+    }
+
+    final url = Uri.parse(
+      'https://www.google.com/maps/search/food+near+me/'
+          '@${widget.latitude},${widget.longitude},14z',
+    );
+
+    await launchUrl(
+      url,
+      webOnlyWindowName: '_blank',
+    );
+  }
+
+  // BUILD
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFEAEAEA),
+
+      body: CustomScrollView(
+        slivers: [
+          _imageHeader(),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(25),
+
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+
+                children: [
+                  _titleSection(),
+
+                  const SizedBox(height: 20),
+
+                  _actionButtons(),
+
+                  const SizedBox(height: 30),
+
+                  _locationCard(),
+
+                  const SizedBox(height: 30),
+
+                  _descriptionSection(),
+
+                  const SizedBox(height: 35),
+
+                  _infoSection(),
+
+                  const SizedBox(height: 50),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // IMAGE HEADER
+  Widget _imageHeader() {
+    return SliverAppBar(
+      expandedHeight: 540,
+      pinned: true,
+
+      backgroundColor: Colors.black,
+
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+
+        child: IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.black,
+          ),
+
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
+
+          children: [
+            // IMAGE
+            widget.imageUrl.isNotEmpty
+                ? Image.network(
+              widget.imageUrl,
+              fit: BoxFit.cover,
+
+              errorBuilder:
+                  (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey.shade400,
+
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    size: 70,
+                    color: Colors.white,
+                  ),
+                );
+              },
+            )
+                : Container(
+              color: Colors.grey.shade400,
+
+              child: const Icon(
+                Icons.image,
+                size: 70,
+                color: Colors.white,
+              ),
+            ),
+
+            // DARK OVERLAY
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+
+                  colors: [
+                    Colors.black.withOpacity(.10),
+                    Colors.black.withOpacity(.20),
+                    Colors.black.withOpacity(.85),
+                  ],
+                ),
+              ),
+            ),
+
+            // TEXT
+            Positioned(
+              left: 25,
+              right: 25,
+              bottom: 35,
+
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+
+                children: [
+                  // CATEGORY
+                  Container(
+                    padding:
+                    const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                      BorderRadius.circular(20),
+                    ),
+
+                    child: Text(
+                      widget.category.isNotEmpty
+                          ? widget.category
+                          : "Destination",
+
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight:
+                        FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // TITLE
+                  Text(
+                    widget.title,
+                    maxLines: 2,
+                    overflow:
+                    TextOverflow.ellipsis,
+
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 34,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // CITY
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+
+                      const SizedBox(width: 5),
+
+                      Expanded(
+                        child: Text(
+                          widget.city,
+
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // TITLE
+  Widget _titleSection() {
+    return Column(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+
+      children: [
+        Text(
+          widget.title,
+
+          style: const TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        Row(
+          children: [
+            const Icon(
+              Icons.location_on,
+              size: 18,
+              color: Colors.black,
+            ),
+
+            const SizedBox(width: 5),
+
+            Expanded(
+              child: Text(
+                widget.location.isNotEmpty
+                    ? widget.location
+                    : widget.city,
+
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ACTION BUTTONS
+  Widget _actionButtons() {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+
+      children: [
+        StreamBuilder<bool>(
+          stream: isSaved(),
+
+          builder: (context, snapshot) {
+            final saved =
+                snapshot.data ?? false;
+
+            return _actionButton(
+              icon: saved
+                  ? Icons.bookmark
+                  : Icons.bookmark_border,
+
+              title:
+              saved ? "Saved" : "Save",
+
+              color: Colors.black,
+
+              onTap: toggleSaved,
+            );
+          },
+        ),
+
+        _actionButton(
+          icon: Icons.map_outlined,
+          title: "Map",
+          color: Colors.black,
+          onTap: openMap,
+        ),
+
+        _actionButton(
+          icon: Icons.hotel_outlined,
+          title: "Lodge",
+          color: Colors.black,
+          onTap: openLodge,
+        ),
+
+        _actionButton(
+          icon: Icons.restaurant_outlined,
+          title: "Food",
+          color: Colors.black,
+          onTap: openFood,
+        ),
+      ],
+    );
+  }
+
+  // ACTION BUTTON
+  Widget _actionButton({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: 125,
+
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+
+        icon: Icon(
+          icon,
+          size: 18,
+        ),
+
+        label: Text(title),
+
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: color,
+
+          elevation: 0,
+
+          padding:
+          const EdgeInsets.symmetric(
+            vertical: 14,
+          ),
+
+          side: BorderSide(
+            color: Colors.grey.shade400,
+          ),
+
+          shape:
+          RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // LOCATION CARD
+  Widget _locationCard() {
+    return Container(
+      width: double.infinity,
+
+      padding: const EdgeInsets.all(20),
+
+      decoration: BoxDecoration(
+        color: Colors.white,
+
+        borderRadius:
+        BorderRadius.circular(20),
+
+        border: Border.all(
+          color: Colors.grey.shade300,
+        ),
+      ),
+
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(13),
+
+            decoration: BoxDecoration(
+              color: Colors.black,
+
+              borderRadius:
+              BorderRadius.circular(15),
+            ),
+
+            child: const Icon(
+              Icons.location_on,
+              color: Colors.white,
+              size: 25,
+            ),
+          ),
+
+          const SizedBox(width: 15),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+              children: [
+                const Text(
+                  "Location",
+
+                  style: TextStyle(
+                    fontWeight:
+                    FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+
+                const SizedBox(height: 5),
+
+                Text(
+                  widget.location.isNotEmpty
+                      ? widget.location
+                      : widget.city,
+
+                  style: TextStyle(
+                    color:
+                    Colors.grey.shade700,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          IconButton(
+            onPressed: openMap,
+
+            icon: const Icon(
+              Icons.open_in_new,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // DESCRIPTION
+  Widget _descriptionSection() {
+    final text =
+    widget.description.trim();
+
+    return Column(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+
+      children: [
+        const Text(
+          "About this place",
+
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        Text(
+          text.isNotEmpty
+              ? text
+              : "Discover the beauty and charm of "
+              "${widget.title}. Explore this wonderful "
+              "destination in ${widget.city}, Maharashtra "
+              "and create unforgettable memories.",
+
+          style: TextStyle(
+            fontSize: 16,
+            height: 1.7,
+            color: Colors.grey.shade800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // INFORMATION
+  Widget _infoSection() {
+    return Column(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+
+      children: [
+        const Text(
+          "Destination Information",
+
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+
+        const SizedBox(height: 15),
+
+        Row(
+          children: [
+            Expanded(
+              child: _infoCard(
+                Icons.location_city,
+                "City",
+                widget.city,
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: _infoCard(
+                Icons.category_outlined,
+                "Category",
+
+                widget.category.isNotEmpty
+                    ? widget.category
+                    : "Tourist Place",
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // INFORMATION CARD
+  Widget _infoCard(
+      IconData icon,
+      String title,
+      String value,
+      ) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+
+      decoration: BoxDecoration(
+        color: Colors.white,
+
+        borderRadius:
+        BorderRadius.circular(18),
+
+        border: Border.all(
+          color: Colors.grey.shade300,
+        ),
+      ),
+
+      child: Column(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+
+        children: [
+          Icon(
+            icon,
+            size: 25,
+            color: Colors.black,
+          ),
+
+          const SizedBox(height: 12),
+
+          Text(
+            title,
+
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13,
+            ),
+          ),
+
+          const SizedBox(height: 5),
+
+          Text(
+            value,
+            maxLines: 2,
+            overflow:
+            TextOverflow.ellipsis,
+
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
