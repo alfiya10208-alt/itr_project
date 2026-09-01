@@ -20,7 +20,6 @@ class CategoryPage extends StatelessWidget {
           'subtitle':
           'Discover forts, palaces and stories that shaped Maharashtra.',
           'icon': Icons.account_balance,
-          'color': const Color(0xFF9A5B35),
           'image': 'assets/historical.jpg',
         };
 
@@ -30,7 +29,6 @@ class CategoryPage extends StatelessWidget {
           'subtitle':
           'Discover sacred temples and peaceful spiritual destinations.',
           'icon': Icons.temple_hindu,
-          'color': const Color(0xFFD28A25),
           'image': 'assets/spiritual.jpg',
         };
 
@@ -40,7 +38,6 @@ class CategoryPage extends StatelessWidget {
           'subtitle':
           'Explore breathtaking Sahyadri mountains, valleys and forts.',
           'icon': Icons.landscape,
-          'color': const Color(0xFF477A52),
           'image': 'assets/mountains.jpg',
         };
 
@@ -50,16 +47,15 @@ class CategoryPage extends StatelessWidget {
           'subtitle':
           'Relax beside Maharashtra’s beautiful Arabian Sea coastline.',
           'icon': Icons.beach_access,
-          'color': const Color(0xFF27869A),
           'image': 'assets/beaches.jpg',
         };
 
       default:
         return {
           'title': 'Explore Maharashtra',
-          'subtitle': 'Discover beautiful places across Maharashtra.',
+          'subtitle':
+          'Discover beautiful places across Maharashtra.',
           'icon': Icons.travel_explore,
-          'color': Colors.black,
           'image': 'assets/splash_bg.jpg',
         };
     }
@@ -125,18 +121,17 @@ class CategoryPage extends StatelessWidget {
     final info = categoryInfo;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: const Color(0xFFE5E5E5),
 
       body: CustomScrollView(
         slivers: [
 
-          // BEAUTIFUL HEADER
+          // HEADER
           SliverAppBar(
-            expandedHeight: 460,
+            expandedHeight: 560,
             pinned: true,
 
-            backgroundColor: info['color'],
-
+            backgroundColor: Colors.black,
             foregroundColor: Colors.white,
 
             elevation: 0,
@@ -150,6 +145,7 @@ class CategoryPage extends StatelessWidget {
               title: Text(
                 category,
                 style: const TextStyle(
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
@@ -159,21 +155,22 @@ class CategoryPage extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
 
+                  // IMAGE
                   Image.asset(
                     info['image'],
                     fit: BoxFit.fill,
                   ),
 
-                  // DARK GRADIENT
+                  // DARK OVERLAY
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(.15),
-                          Colors.black.withOpacity(.25),
-                          Colors.black.withOpacity(.85),
+                          Colors.black.withOpacity(.20),
+                          Colors.black.withOpacity(.45),
+                          Colors.black.withOpacity(.90),
                         ],
                       ),
                     ),
@@ -184,21 +181,28 @@ class CategoryPage extends StatelessWidget {
                     left: 30,
                     right: 30,
                     bottom: 65,
+
                     child: Column(
                       crossAxisAlignment:
                       CrossAxisAlignment.start,
+
                       children: [
 
+                        // ICON
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding:
+                          const EdgeInsets.all(12),
 
-                          decoration: BoxDecoration(
-                            color: Colors.white
-                                .withOpacity(.18),
+                          decoration:
+                          BoxDecoration(
+                            color: Colors.black
+                                .withOpacity(.75),
+
                             shape: BoxShape.circle,
+
                             border: Border.all(
                               color: Colors.white
-                                  .withOpacity(.4),
+                                  .withOpacity(.5),
                             ),
                           ),
 
@@ -211,6 +215,7 @@ class CategoryPage extends StatelessWidget {
 
                         const SizedBox(height: 18),
 
+                        // TITLE
                         Text(
                           info['title'],
                           style: const TextStyle(
@@ -222,6 +227,7 @@ class CategoryPage extends StatelessWidget {
 
                         const SizedBox(height: 8),
 
+                        // SUBTITLE
                         Text(
                           info['subtitle'],
                           style: const TextStyle(
@@ -238,7 +244,7 @@ class CategoryPage extends StatelessWidget {
             ),
           ),
 
-          // CONTENT
+          // FIRESTORE PLACES
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
               22,
@@ -273,8 +279,11 @@ class CategoryPage extends StatelessWidget {
                   return const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.all(50),
+
                       child: Center(
-                        child: CircularProgressIndicator(),
+                        child: CircularProgressIndicator(
+                          color: Colors.black,
+                        ),
                       ),
                     ),
                   );
@@ -288,13 +297,16 @@ class CategoryPage extends StatelessWidget {
                   );
                 }
 
-                final places = snapshot.data!.docs;
+                final places =
+                    snapshot.data!.docs;
 
                 return SliverList(
-                  delegate: SliverChildBuilderDelegate(
+                  delegate:
+                  SliverChildBuilderDelegate(
                         (context, index) {
 
-                      final doc = places[index];
+                      final doc =
+                      places[index];
 
                       final data =
                       doc.data()
@@ -326,11 +338,13 @@ class CategoryPage extends StatelessWidget {
                               '';
 
                       final latitude =
-                      (data['latitude'] as num?)
+                      (data['latitude']
+                      as num?)
                           ?.toDouble();
 
                       final longitude =
-                      (data['longitude'] as num?)
+                      (data['longitude']
+                      as num?)
                           ?.toDouble();
 
                       return Padding(
@@ -374,17 +388,16 @@ class CategoryPage extends StatelessWidget {
       double? latitude,
       double? longitude,
       ) {
-    final info = categoryInfo;
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
 
-        borderRadius: BorderRadius.circular(24),
+        borderRadius:
+        BorderRadius.circular(24),
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.08),
+            color: Colors.black.withOpacity(.10),
             blurRadius: 18,
             offset: const Offset(0, 7),
           ),
@@ -392,7 +405,8 @@ class CategoryPage extends StatelessWidget {
       ),
 
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius:
+        BorderRadius.circular(24),
 
         child: Column(
           crossAxisAlignment:
@@ -407,11 +421,12 @@ class CategoryPage extends StatelessWidget {
               child: Stack(
                 children: [
 
+                  // IMAGE
                   Positioned.fill(
                     child: imageUrl.isNotEmpty
                         ? Image.network(
                       imageUrl,
-                      fit: BoxFit.fill,
+                      fit: BoxFit.cover,
 
                       errorBuilder:
                           (_, __, ___) {
@@ -421,7 +436,7 @@ class CategoryPage extends StatelessWidget {
                         : _imagePlaceholder(),
                   ),
 
-                  // IMAGE GRADIENT
+                  // IMAGE DARK GRADIENT
                   Positioned.fill(
                     child: Container(
                       decoration:
@@ -432,10 +447,11 @@ class CategoryPage extends StatelessWidget {
                           Alignment.topCenter,
                           end:
                           Alignment.bottomCenter,
+
                           colors: [
                             Colors.transparent,
                             Colors.black
-                                .withOpacity(.65),
+                                .withOpacity(.75),
                           ],
                         ),
                       ),
@@ -449,20 +465,27 @@ class CategoryPage extends StatelessWidget {
 
                     child: Container(
                       padding:
-                      const EdgeInsets.symmetric(
+                      const EdgeInsets
+                          .symmetric(
                         horizontal: 13,
                         vertical: 8,
                       ),
 
-                      decoration: BoxDecoration(
-                        color: info['color'],
+                      decoration:
+                      BoxDecoration(
+                        color: Colors.black,
+
                         borderRadius:
-                        BorderRadius.circular(30),
+                        BorderRadius.circular(
+                          30,
+                        ),
                       ),
 
                       child: Text(
                         category.toUpperCase(),
-                        style: const TextStyle(
+
+                        style:
+                        const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
                           fontWeight:
@@ -473,7 +496,7 @@ class CategoryPage extends StatelessWidget {
                     ),
                   ),
 
-                  // LOCATION ON IMAGE
+                  // LOCATION
                   Positioned(
                     bottom: 18,
                     left: 18,
@@ -488,11 +511,14 @@ class CategoryPage extends StatelessWidget {
                           size: 18,
                         ),
 
-                        const SizedBox(width: 5),
+                        const SizedBox(
+                          width: 5,
+                        ),
 
                         Expanded(
                           child: Text(
                             city,
+
                             style:
                             const TextStyle(
                               color: Colors.white,
@@ -520,31 +546,41 @@ class CategoryPage extends StatelessWidget {
 
                 children: [
 
+                  // NAME
                   Text(
                     name,
-                    style: const TextStyle(
+
+                    style:
+                    const TextStyle(
                       fontSize: 23,
                       fontWeight:
                       FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
 
-                  const SizedBox(height: 7),
+                  const SizedBox(
+                    height: 7,
+                  ),
 
+                  // LOCATION
                   Row(
                     children: [
 
-                      Icon(
+                      const Icon(
                         Icons.place_outlined,
                         size: 17,
-                        color: info['color'],
+                        color: Colors.black,
                       ),
 
-                      const SizedBox(width: 5),
+                      const SizedBox(
+                        width: 5,
+                      ),
 
                       Expanded(
                         child: Text(
                           location,
+
                           style: TextStyle(
                             color:
                             Colors.grey.shade600,
@@ -555,11 +591,16 @@ class CategoryPage extends StatelessWidget {
                     ],
                   ),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(
+                    height: 14,
+                  ),
 
+                  // DESCRIPTION
                   Text(
                     description,
+
                     maxLines: 3,
+
                     overflow:
                     TextOverflow.ellipsis,
 
@@ -571,7 +612,9 @@ class CategoryPage extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(
+                    height: 20,
+                  ),
 
                   // ACTION BUTTONS
                   Row(
@@ -579,10 +622,11 @@ class CategoryPage extends StatelessWidget {
 
                       Expanded(
                         child: _actionButton(
-                          icon: Icons.map_outlined,
+                          icon:
+                          Icons.map_outlined,
                           text: 'Map',
-                          color: info['color'],
-                          onTap: latitude != null &&
+                          onTap:
+                          latitude != null &&
                               longitude != null
                               ? () => openLocation(
                             latitude,
@@ -592,27 +636,31 @@ class CategoryPage extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(width: 10),
+                      const SizedBox(
+                        width: 10,
+                      ),
 
                       Expanded(
                         child: _actionButton(
-                          icon: Icons.hotel_outlined,
+                          icon:
+                          Icons.hotel_outlined,
                           text: 'Lodge',
-                          color: info['color'],
                           onTap: () =>
                               openLodge(name),
                         ),
                       ),
 
-                      const SizedBox(width: 10),
+                      const SizedBox(
+                        width: 10,
+                      ),
 
                       Expanded(
                         child: _actionButton(
-                          icon:
-                          Icons.restaurant_outlined,
+                          icon: Icons
+                              .restaurant_outlined,
                           text: 'Food',
-                          color: info['color'],
-                          onTap: latitude != null &&
+                          onTap:
+                          latitude != null &&
                               longitude != null
                               ? () => openFood(
                             latitude,
@@ -636,7 +684,6 @@ class CategoryPage extends StatelessWidget {
   Widget _actionButton({
     required IconData icon,
     required String text,
-    required Color color,
     required VoidCallback? onTap,
   }) {
     return OutlinedButton.icon(
@@ -649,6 +696,7 @@ class CategoryPage extends StatelessWidget {
 
       label: Text(
         text,
+
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -656,10 +704,13 @@ class CategoryPage extends StatelessWidget {
       ),
 
       style: OutlinedButton.styleFrom(
-        foregroundColor: color,
+        foregroundColor: Colors.black,
 
-        side: BorderSide(
-          color: color.withOpacity(.35),
+        backgroundColor:
+        const Color(0xFFF2F2F2),
+
+        side: const BorderSide(
+          color: Color(0xFFD0D0D0),
         ),
 
         padding:
@@ -667,7 +718,8 @@ class CategoryPage extends StatelessWidget {
           vertical: 12,
         ),
 
-        shape: RoundedRectangleBorder(
+        shape:
+        RoundedRectangleBorder(
           borderRadius:
           BorderRadius.circular(13),
         ),
@@ -678,13 +730,13 @@ class CategoryPage extends StatelessWidget {
   // IMAGE PLACEHOLDER
   Widget _imagePlaceholder() {
     return Container(
-      color: Colors.grey.shade200,
+      color: const Color(0xFFD6D6D6),
 
       child: const Center(
         child: Icon(
           Icons.image_outlined,
           size: 55,
-          color: Colors.grey,
+          color: Colors.black54,
         ),
       ),
     );
@@ -697,11 +749,22 @@ class CategoryPage extends StatelessWidget {
     return Container(
       width: double.infinity,
 
-      padding: const EdgeInsets.all(45),
+      padding:
+      const EdgeInsets.all(45),
 
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
+
+        borderRadius:
+        BorderRadius.circular(25),
+
+        boxShadow: [
+          BoxShadow(
+            color:
+            Colors.black.withOpacity(.06),
+            blurRadius: 15,
+          ),
+        ],
       ),
 
       child: Column(
@@ -710,26 +773,36 @@ class CategoryPage extends StatelessWidget {
           Icon(
             info['icon'],
             size: 55,
-            color: info['color'],
+            color: Colors.black,
           ),
 
-          const SizedBox(height: 15),
+          const SizedBox(
+            height: 15,
+          ),
 
           const Text(
             "No places found",
+
             style: TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+              FontWeight.bold,
             ),
           ),
 
-          const SizedBox(height: 7),
+          const SizedBox(
+            height: 7,
+          ),
 
           Text(
             "We couldn't find any places in this category.",
-            textAlign: TextAlign.center,
+
+            textAlign:
+            TextAlign.center,
+
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color:
+              Colors.grey.shade600,
             ),
           ),
         ],
@@ -740,11 +813,22 @@ class CategoryPage extends StatelessWidget {
   // ERROR
   Widget _errorCard(String error) {
     return Container(
-      padding: const EdgeInsets.all(25),
+      padding:
+      const EdgeInsets.all(25),
 
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+
+        borderRadius:
+        BorderRadius.circular(20),
+
+        boxShadow: [
+          BoxShadow(
+            color:
+            Colors.black.withOpacity(.06),
+            blurRadius: 12,
+          ),
+        ],
       ),
 
       child: Column(
@@ -752,25 +836,34 @@ class CategoryPage extends StatelessWidget {
 
           const Icon(
             Icons.error_outline,
-            color: Colors.red,
+            color: Colors.black,
             size: 45,
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(
+            height: 10,
+          ),
 
           const Text(
             "Something went wrong",
+
             style: TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+              FontWeight.bold,
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(
+            height: 8,
+          ),
 
           Text(
             error,
-            textAlign: TextAlign.center,
+
+            textAlign:
+            TextAlign.center,
+
             style: const TextStyle(
               color: Colors.grey,
             ),
