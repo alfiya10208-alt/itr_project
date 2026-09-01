@@ -249,7 +249,7 @@ class FavoriteCard extends StatelessWidget {
                 child: imageUrl.isNotEmpty
                     ? Image.network(
                   imageUrl,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.fill,
                   errorBuilder:
                       (context, error, stackTrace) {
                     return Container(
