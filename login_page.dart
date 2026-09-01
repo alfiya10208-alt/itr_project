@@ -108,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/bg4.jpg"),
-            fit: BoxFit.fill,
+            fit: BoxFit.cover,
           ),
         ),
         child: Center(
